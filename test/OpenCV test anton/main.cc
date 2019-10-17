@@ -4,35 +4,15 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
-
-static uint8_t sample_point_grayscale(const cv::Mat& image, int point_x, int point_y, int sample_rad) {
-    int sx = std::clamp(point_x - sample_rad, 0, image.cols - 1);
-    int sy = std::clamp(point_y - sample_rad, 0, image.rows - 1);
-    int ex = std::clamp(point_x + sample_rad, 0, image.cols - 1);
-    int ey = std::clamp(point_y + sample_rad, 0, image.rows - 1);
-
-    int size   = (ex - sx) * (ey - sy);
-    int sample = 0;
-
-    for (int y = sy; y < ey; ++y) {
-        for (int x = sx; x < ex; ++x) {
-            sample += image.at<uint8_t>(y, x);
-        }
-    }
-
-    return uint8_t(sample / size);
-}
+#include <iostream>
 
 int main(void) {
     cv::VideoCapture cap(0);
 
     if (!cap.isOpened()) { return -1; }
 
-    //cap.set(cv::CAP_PROP_POS_FRAMES, 5000);
-
     cv::namedWindow("capture");
     cv::namedWindow("edges");
-    //cv::namedWindow("lines");
 
     cv::Mat capture, edges, lines;
 
@@ -68,7 +48,6 @@ int main(void) {
 
         cv::imshow("capture", capture);
         cv::imshow("edges", edges);
-        //cv::imshow("lines", lines);
     }
 }
 
