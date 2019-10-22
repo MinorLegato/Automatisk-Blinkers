@@ -21,12 +21,18 @@ int main(void) {
     std::vector<cv::Vec4i>  line_vector;
     line_vector.reserve(8 * 2048);
 
+<<<<<<< Updated upstream
     // 640 480
     cv::Point points[] = {
         cv::Point(0,   480),
         cv::Point(640, 480),
         cv::Point(640 / 2, 480 / 2)
     };
+=======
+    Mat src = Mat::zeros( src.rows,src.cols, CV_8UC1 );
+
+    
+>>>>>>> Stashed changes
 
     while (cv::waitKey(16) != 27) {
         cap >> capture;
