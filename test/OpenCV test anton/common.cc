@@ -23,20 +23,6 @@ using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 
-void *operator new    (size_t size)       { return std::malloc(size); }
-void  operator delete (void *ptr)         { return std::free(ptr); }
-void  operator delete (void *ptr, size_t) { return std::free(ptr); }
-
-template <typename T>
-static T *allocate(i32 count = 1) {
-    return (T *)malloc(count * sizeof (T));
-}
-
-template <typename T>
-static T *reallocate(T *ptr, i32 count) {
-    return (T *)realloc(ptr, sizeof (T) * count);
-}
-
 // =============================================== MATH ================================================= //
 
 struct v2 {
@@ -110,7 +96,7 @@ struct Line {
 template <typename T, i32 N>
 struct StaticArray {
     // data:
-    i32 len;
+    i32 len = 0;
     T   array[N];
 
     // methods:
@@ -132,49 +118,45 @@ struct StaticArray {
 
 // ============================================ LINE GRID ============================================== //
 
-struct Grid {
-    using Cell = StaticArray<Line, 64>;
+using LineArray = StaticArray<Line, 64>;
+
+struct LineGrid {
     // data:
-    i32     width;
-    i32     height;
-    Cell*   cells;
+    i32         width       = 0;
+    i32         height      = 0;
+    i32         cell_size   = 0;
+    LineArray*  cells      = nullptr;
 
     // methods:
-    Grid(int width, int height);
-    ~Grid();
-
+    void init(int width, int height);
     void clear();
-    void addLine(const Line &line);
+    void addLine(const Line& line);
 };
 
-inline Grid::Grid(int width, int height) {
-    this->width  = width;
-    this->height = height;
-    this->cells  = new Cell[this->width * this->height];
+void LineGrid::init(int w, int h) {
+    width  = w;
+    height = h;
+    cells  = new LineArray[width * height];
 }
 
-inline Grid::~Grid() {
-    delete[] this->cells;
-}
-
-inline void Grid::clear() {
+inline void LineGrid::clear() {
     int size = this->width * this->height;
 
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
         cells[i].clear();
-    }
 }
 
-inline void Grid::addLine(const Line &line) {
-    auto dir  = norm(line.b - line.a);
-    auto iter = line.a;
+inline void LineGrid::addLine(const Line& line) {
+    v2 dir  = norm(line.b - line.a);
+    v2 iter = line.a;
 
     while (int(iter.x) != int(line.b.x) && int(iter.y) != int(line.b.x)) {
-        auto cell = &cells[int(iter.y) * width + int(iter.x)];
+        LineArray* cell = &cells[int(iter.y) * width + int(iter.x)];
 
         cell->add(line);
 
         iter += dir;
     }
 }
+
 
