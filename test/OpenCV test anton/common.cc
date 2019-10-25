@@ -30,59 +30,53 @@ struct v2 {
     f32   y;
 };
 
-inline v2 operator+(const v2 &a, const v2 &b) {
-    return { a.x + b.x, a.y + b.y };
-}
+inline v2 operator+(const v2& a, const v2& b) { return { a.x + b.x, a.y + b.y }; }
+inline v2 operator-(const v2& a, const v2& b) { return { a.x - b.x, a.y - b.y }; }
+inline v2 operator*(const v2& a, f32 s)       { return { a.x * s, a.y * s }; }
+inline v2 operator*(f32 s, const v2& a)       { return { a.x * s, a.y * s }; }
+inline v2 operator/(const v2& a, f32 s)       { return { a.x / s, a.y / s }; }
 
-inline v2 operator-(const v2 &a, const v2 &b) {
-    return { a.x - b.x, a.y - b.y };
-}
-
-inline v2 operator*(const v2 &a, f32 s) {
-    return { a.x * s, a.y * s };
-}
-
-inline v2 operator*(f32 s, const v2 &a) {
-    return { a.x * s, a.y * s };
-}
-
-inline v2 operator/(const v2 &a, f32 s) {
-    return { a.x / s, a.y / s };
-}
-
-inline void operator+=(v2 &a, const v2 &b) {
+inline void operator+=(v2& a, const v2& b) {
     a.x += b.x;
     a.y += b.y;
 }
 
-inline void operator-=(v2 &a, const v2 &b) {
+inline void operator-=(v2& a, const v2& b) {
     a.x -= b.x;
     a.y -= b.y;
 }
 
-inline void operator*=(v2 &a, f32 s) {
+inline void operator*=(v2& a, f32 s) {
     a.x *= s;
     a.y *= s;
 }
 
-inline void operator/=(v2 &a, f32 s) {
+inline void operator/=(v2& a, f32 s) {
     a.x /= s;
     a.y /= s;
 }
 
-inline f32 dot(const v2 &a, const v2 &b) {
+inline f32 dot(const v2& a, const v2& b) {
     return a.x * b.x + a.y * b.y;
 }
 
-inline f32 lenSq(const v2 &a) {
+inline f32 lenSq(const v2& a) {
     return dot(a, a);
 }
 
-inline f32 len(const v2 &a) {
+inline f32 len(const v2& a) {
     return std::sqrt(dot(a, a));
 }
 
-inline v2 norm(const v2 &a) {
+inline f32 distSq(const v2& a, const v2& b) {
+    return lenSq(b - a);
+}
+
+inline f32 dist(const v2& a, const v2& b) {
+    return std::sqrt(distSq(a, b));
+}
+
+inline v2 norm(const v2& a) {
     return a / len(a);
 }
 
@@ -90,6 +84,26 @@ struct Line {
     v2  a;
     v2  b;
 };
+
+inline Line lineCreate(const v2& a, const v2& b) {
+    Line line;
+
+    line.a = a;
+    line.b = b;
+
+    return line;
+}
+
+inline Line lineCreate(f32 x0, f32 y0, f32 x1, f32 y1) {
+    Line line;
+
+    line.a.x = x0;
+    line.a.y = y0;
+    line.b.x = x1;
+    line.b.y = y1;
+
+    return line;
+}
 
 // ============================================== ARRAY ================================================ //
 
@@ -105,15 +119,15 @@ struct StaticArray {
 
     void clear() { len = 0; }
     
-    T &       operator[](int index)       { return array[index]; }
-    const T & operator[](int index) const { return array[index]; }
+    T&       operator[](int index)       { return array[index]; }
+    const T& operator[](int index) const { return array[index]; }
     //
     int size() const { return len; }
 
-    T *       begin()       { return array; }
-    T *       end()         { return array + len; }
-    const T * begin() const { return array; }
-    const T * end()   const { return array + len; }
+    T*       begin()       { return array; }
+    T*       end()         { return array + len; }
+    const T* begin() const { return array; }
+    const T* end()   const { return array + len; }
 };
 
 // ============================================ LINE GRID ============================================== //
@@ -125,38 +139,41 @@ struct LineGrid {
     i32         width       = 0;
     i32         height      = 0;
     i32         cell_size   = 0;
-    LineArray*  cells      = nullptr;
+    //
+    LineArray*  cells       = nullptr;
 
     // methods:
-    void init(int width, int height);
-    void clear();
-    void addLine(const Line& line);
-};
-
-void LineGrid::init(int w, int h) {
-    width  = w;
-    height = h;
-    cells  = new LineArray[width * height];
-}
-
-inline void LineGrid::clear() {
-    int size = this->width * this->height;
-
-    for (int i = 0; i < size; ++i)
-        cells[i].clear();
-}
-
-inline void LineGrid::addLine(const Line& line) {
-    v2 dir  = norm(line.b - line.a);
-    v2 iter = line.a;
-
-    while (int(iter.x) != int(line.b.x) && int(iter.y) != int(line.b.x)) {
-        LineArray* cell = &cells[int(iter.y) * width + int(iter.x)];
-
-        cell->add(line);
-
-        iter += dir;
+    void init(int image_width, int image_height, int cs) {
+        width     = image_width  / cs;
+        height    = image_height / cs;
+        cell_size = cs;
+        //
+        cells  = new LineArray[width * height];
     }
-}
 
+    void clear() {
+        int size = this->width * this->height;
+
+        for (int i = 0; i < size; ++i)
+            cells[i].clear();
+    }
+
+    const LineArray* get(int x, int y) const { return &cells[y * width + x]; }
+    LineArray*       get(int x, int y)       { return &cells[y * width + x]; }
+
+    void addLine(const Line& line) {
+        v2 a    = line.a / f32(cell_size);
+        v2 b    = line.b / f32(cell_size);
+        v2 iter = a;
+        v2 dir  = 0.5f * norm(b - a);
+
+        while (distSq(iter, b) > 1.0f) {
+            auto cell = get(iter.x, iter.y);
+
+            cell->add(line);
+
+            iter += dir;
+        }
+    }
+};
 
