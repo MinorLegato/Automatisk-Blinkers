@@ -16,9 +16,9 @@ int main(void) {
         { 640 / 2, 480 / 2 }
     };
 
-    LineGrid grid;
+    GridLine grid;
 
-    grid.init(640, 480, 32);
+    init(&grid, 640, 480, 32);
 
     while (cv::waitKey(16) != 27) {
         cap >> capture;
@@ -33,14 +33,15 @@ int main(void) {
         // find lines:
         {
             line_vector.resize(0);
-            grid.clear();
+
+            clear(&grid);
 
             cv::HoughLinesP(edges, line_vector, 2, CV_PI / 180, 20, 32, 16);
             
             for (auto l : line_vector) {
                 cv::line(lines, { l[0], l[1] }, { l[2], l[3] }, { 0, 100, 255 }, 2);
 
-                grid.addLine(lineCreate(l[0], l[1], l[2], l[3]));
+                addLine(&grid, lineCreate(l[0], l[1], l[2], l[3]));
             }
         }
 
@@ -51,7 +52,7 @@ int main(void) {
 
             for (int y = 0; y < grid.height; ++y) {
                 for (int x = 0; x < grid.width; ++x) {
-                    auto cell = grid.get(x, y);
+                    auto cell = get(&grid, x, y);
 
                     if (cell->size() > 0) {
                         putchar('#');

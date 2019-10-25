@@ -134,46 +134,54 @@ struct StaticArray {
 
 using LineArray = StaticArray<Line, 64>;
 
-struct LineGrid {
-    // data:
+struct GridLine {
     i32         width       = 0;
     i32         height      = 0;
     i32         cell_size   = 0;
-    //
     LineArray*  cells       = nullptr;
-
-    // methods:
-    void init(int image_width, int image_height, int cs) {
-        width     = image_width  / cs;
-        height    = image_height / cs;
-        cell_size = cs;
-        //
-        cells  = new LineArray[width * height];
-    }
-
-    void clear() {
-        int size = this->width * this->height;
-
-        for (int i = 0; i < size; ++i)
-            cells[i].clear();
-    }
-
-    const LineArray* get(int x, int y) const { return &cells[y * width + x]; }
-    LineArray*       get(int x, int y)       { return &cells[y * width + x]; }
-
-    void addLine(const Line& line) {
-        v2 a    = line.a / f32(cell_size);
-        v2 b    = line.b / f32(cell_size);
-        v2 iter = a;
-        v2 dir  = 0.5f * norm(b - a);
-
-        while (distSq(iter, b) > 1.0f) {
-            auto cell = get(iter.x, iter.y);
-
-            cell->add(line);
-
-            iter += dir;
-        }
-    }
 };
+
+// methods:
+void
+init(GridLine *grid, int image_width, int image_height, int cell_size) {
+    grid->width     = image_width  / cell_size;
+    grid->height    = image_height / cell_size;
+    grid->cell_size = cell_size;
+    grid->cells     = new LineArray[grid->width * grid->height];
+}
+
+void
+clear(GridLine *grid) {
+    int size = grid->width * grid->height;
+
+    for (int i = 0; i < size; ++i) {
+        grid->cells[i].clear();
+    }
+}
+
+const LineArray *
+get(const GridLine *grid, int x, int y) {
+    return &grid->cells[y * grid->width + x];
+}
+
+LineArray *
+get(GridLine *grid, int x, int y) {
+    return &grid->cells[y * grid->width + x];
+}
+
+void
+addLine(GridLine *grid, const Line& line) {
+    v2 a    = line.a / f32(grid->cell_size);
+    v2 b    = line.b / f32(grid->cell_size);
+    v2 iter = a;
+    v2 dir  = 0.5f * norm(b - a);
+
+    while (distSq(iter, b) > 1.0f) {
+        auto cell = get(grid, iter.x, iter.y);
+
+        cell->add(line);
+
+        iter += dir;
+    }
+}
 
