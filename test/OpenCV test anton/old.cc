@@ -1,4 +1,3 @@
-#include "common.cc"
 
 int main(void) {
     cv::VideoCapture cap(0);
