@@ -138,20 +138,20 @@ struct GridLine {
     i32         width       = 0;
     i32         height      = 0;
     i32         cell_size   = 0;
-    LineArray*  cells       = nullptr;
+    LineArray   *cells      = nullptr;
 };
 
 // methods:
-void
-init(GridLine *grid, int image_width, int image_height, int cell_size) {
+static void
+grid_init(GridLine *grid, int image_width, int image_height, int cell_size) {
     grid->width     = image_width  / cell_size;
     grid->height    = image_height / cell_size;
     grid->cell_size = cell_size;
     grid->cells     = new LineArray[grid->width * grid->height];
 }
 
-void
-clear(GridLine *grid) {
+static void
+grid_clear(GridLine *grid) {
     int size = grid->width * grid->height;
 
     for (int i = 0; i < size; ++i) {
@@ -159,28 +159,27 @@ clear(GridLine *grid) {
     }
 }
 
-const LineArray *
-get(const GridLine *grid, int x, int y) {
+static const LineArray *
+grid_get(const GridLine *grid, int x, int y) {
     return &grid->cells[y * grid->width + x];
 }
 
-LineArray *
-get(GridLine *grid, int x, int y) {
+static LineArray *
+grid_get(GridLine *grid, int x, int y) {
     return &grid->cells[y * grid->width + x];
 }
 
-void
-addLine(GridLine *grid, const Line& line) {
+static void
+grid_add_line(GridLine *grid, Line line) {
     v2 a    = line.a / f32(grid->cell_size);
     v2 b    = line.b / f32(grid->cell_size);
     v2 iter = a;
     v2 dir  = 0.5f * norm(b - a);
 
     while (distSq(iter, b) > 1.0f) {
-        auto cell = get(grid, iter.x, iter.y);
+        LineArray *cell = grid_get(grid, iter.x, iter.y);
 
         cell->add(line);
-
         iter += dir;
     }
 }
