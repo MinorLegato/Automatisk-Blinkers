@@ -10,173 +10,91 @@
 #include <array>
 #include <cmath>
 
-// =============================================== MATH ================================================= //
+using f32 = float;
 
-struct v2 {
-    float   x;
-    float   y;
-};
+using i8  = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
 
-inline v2 operator+(const v2& a, const v2& b) { return { a.x + b.x, a.y + b.y }; }
-inline v2 operator-(const v2& a, const v2& b) { return { a.x - b.x, a.y - b.y }; }
-inline v2 operator*(const v2& a, float s)       { return { a.x * s, a.y * s }; }
-inline v2 operator*(float s, const v2& a)       { return { a.x * s, a.y * s }; }
-inline v2 operator/(const v2& a, float s)       { return { a.x / s, a.y / s }; }
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
 
-inline void operator+=(v2& a, const v2& b) {
-    a.x += b.x;
-    a.y += b.y;
+static inline f32 distSq2f(const f32 a[2], const f32 b[2]) {
+    const f32 c[2] = { b[0] - a[0], b[1] - a[1] };
+    return c[0] * c[0] + c[1] * c[1];
 }
-
-inline void operator-=(v2& a, const v2& b) {
-    a.x -= b.x;
-    a.y -= b.y;
-}
-
-inline void operator*=(v2& a, float s) {
-    a.x *= s;
-    a.y *= s;
-}
-
-inline void operator/=(v2& a, float s) {
-    a.x /= s;
-    a.y /= s;
-}
-
-inline float dot(const v2& a, const v2& b) {
-    return a.x * b.x + a.y * b.y;
-}
-
-inline float lenSq(const v2& a) {
-    return dot(a, a);
-}
-
-inline float len(const v2& a) {
-    return std::sqrt(dot(a, a));
-}
-
-inline float distSq(const v2& a, const v2& b) {
-    return lenSq(b - a);
-}
-
-inline float dist(const v2& a, const v2& b) {
-    return std::sqrt(distSq(a, b));
-}
-
-inline v2 norm(const v2& a) {
-    return a / len(a);
-}
-
-struct Line {
-    v2  a;
-    v2  b;
-};
-
-inline Line lineCreate(const v2& a, const v2& b) {
-    Line line;
-
-    line.a = a;
-    line.b = b;
-
-    return line;
-}
-
-inline Line lineCreate(float x0, float y0, float x1, float y1) {
-    Line line;
-
-    line.a.x = x0;
-    line.a.y = y0;
-    line.b.x = x1;
-    line.b.y = y1;
-
-    return line;
-}
-
-// ============================================== ARRAY ================================================ //
-
-template <typename T, int N>
-struct StaticArray {
-    int len = 0;
-    T   array[N];
-
-    // methods:
-    void add(const T &e) { array[len++] = e; }
-    void rem(int index)  { array[index] = array[--len]; }
-
-    void clear() { len = 0; }
-    
-    T&       operator[](int index)       { return array[index]; }
-    const T& operator[](int index) const { return array[index]; }
-    //
-    int size() const { return len; }
-
-    bool isFull() const {
-        return len >= N;
-    }
-
-    T*       begin()       { return array; }
-    T*       end()         { return array + len; }
-    const T* begin() const { return array; }
-    const T* end()   const { return array + len; }
-};
 
 // ============================================ LINE GRID ============================================== //
 
-using LineArray = StaticArray<Line, 64>;
+#define LINE_CELL_MAX_COUNT (64)
+
+struct LineCell {
+    int     count;
+    f32     array[LINE_CELL_MAX_COUNT][4];
+};
 
 struct LineGrid {
     int         width;
     int         height;
     int         cell_size;
-    LineArray   *cells;
+    LineCell    *cells;
     //
-    LineArray *
-    getCell(int x, int y) {
+    LineCell *getCell(int x, int y) {
         return &cells[y * width + x];
     }
 
-    const LineArray *
-    getCell(int x, int y) const {
+    const LineCell *getCell(int x, int y) const {
         return &cells[y * width + x];
     }
 };
 
-static void
-initGrid(LineGrid *grid, int cell_size) {
+static void initGrid(LineGrid *grid, int cell_size) {
     grid->cell_size     = cell_size;
     grid->cells         = nullptr;
 }
 
-static void
-resizeGrid(LineGrid *grid, int image_width, int image_height) {
+static void resizeGrid(LineGrid *grid, int image_width, int image_height) {
     grid->width     = image_width  / grid->cell_size;
     grid->height    = image_height / grid->cell_size;
-    grid->cells     = (LineArray *)realloc(grid->cells, grid->width * grid->height * sizeof (LineArray)); 
+    grid->cells     = (LineCell *)realloc(grid->cells, grid->width * grid->height * sizeof (LineCell)); 
 }
 
-static void
-clearGrid(LineGrid *grid) {
+static void clearGrid(LineGrid *grid) {
     int size = grid->width * grid->height;
 
     for (int i = 0; i < size; ++i)
-        grid->cells[i].clear();
+        grid->cells[i].count = 0;
 }
 
-static void
-addLineToGrid(LineGrid *grid, Line line) {
-    v2 a    = line.a / float(grid->cell_size);
-    v2 b    = line.b / float(grid->cell_size);
-    v2 iter = a;
-    v2 dir  = 0.5f * norm(b - a);
+static void addLineToGrid(LineGrid *grid, cv::Vec4i cv_line) {
+    f32 cell_size = float(grid->cell_size);
+    f32 a[2]      = { cv_line[0] / cell_size, cv_line[1] / cell_size };
+    f32 b[2]      = { cv_line[2] / cell_size, cv_line[3] / cell_size };
+    f32 iter[2]   = { a[0], a[1] };
+    f32 dir[2]    = { b[0] - a[0], b[1] - a[1] };
+    f32 dlen      = sqrtf(dir[0] * dir[0] + dir[1] * dir[1]);
+    f32 inv_dlen  = dlen == 0.0f? 0.0f : 1.0f / dlen;
 
-    while (distSq(iter, b) > 1.0f) {
-        LineArray *cell = grid->getCell(iter.x, iter.y);
+    dir[0] *= 0.5f * inv_dlen;
+    dir[1] *= 0.5f * inv_dlen;
 
-        if (!cell->isFull()) {
-            cell->add(line);
+    while (distSq2f(iter, b) > 1.0f) {
+        LineCell *cell = grid->getCell(iter[0], iter[1]);
+
+        if (cell->count <= LINE_CELL_MAX_COUNT) {
+            f32 *line = cell->array[cell->count++];
+
+            line[0] = cv_line[0];
+            line[1] = cv_line[1];
+            line[2] = cv_line[2];
+            line[3] = cv_line[3];
         }
 
-        iter += dir;
+        iter[0] += dir[0];
+        iter[1] += dir[1];
     }
 }
 
