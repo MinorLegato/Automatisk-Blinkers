@@ -5,9 +5,6 @@
 #include <cstdint>
 
 #include <vector>
-#include <algorithm>
-#include <iostream>
-#include <array>
 #include <cmath>
 
 using f32 = float;
@@ -21,6 +18,8 @@ using u8  = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
+
+// ========================================== MATH FUNCS =============================================== //
 
 static inline f32 distSq2f(const f32 a[2], const f32 b[2]) {
     const f32 c[2] = { b[0] - a[0], b[1] - a[1] };
