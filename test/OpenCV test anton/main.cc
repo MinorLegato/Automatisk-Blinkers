@@ -30,7 +30,7 @@ int main(void) {
             clearGrid(&grid);
 
             cv::HoughLinesP(edges, line_vector, 2, CV_PI / 180, 20, 32, 16);
-            
+
             for (auto line : line_vector) {
                 cv::line(lines, { line[0], line[1] }, { line[2], line[3] }, { 0, 100, 255 }, 2);
                 addLineToGrid(&grid, line);
@@ -64,4 +64,3 @@ int main(void) {
         cv::imshow("lines", lines);
     }
 }
-
