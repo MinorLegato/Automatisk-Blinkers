@@ -69,7 +69,7 @@ static void clearGrid(LineGrid *grid) {
 }
 
 static void addLineToGrid(LineGrid *grid, cv::Vec4i cv_line) {
-    f32 cell_size = float(grid->cell_size);
+    f32 cell_size = f32(grid->cell_size);
     f32 a[2]      = { cv_line[0] / cell_size, cv_line[1] / cell_size };
     f32 b[2]      = { cv_line[2] / cell_size, cv_line[3] / cell_size };
     f32 iter[2]   = { a[0], a[1] };
