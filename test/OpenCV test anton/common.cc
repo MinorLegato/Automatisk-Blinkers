@@ -21,7 +21,7 @@ using u64 = uint64_t;
 
 // ========================================== MATH FUNCS =============================================== //
 
-static inline f32 distSq2f(const f32 a[2], const f32 b[2]) {
+static inline f32 distSq(const f32 a[2], const f32 b[2]) {
     const f32 c[2] = { b[0] - a[0], b[1] - a[1] };
     return c[0] * c[0] + c[1] * c[1];
 }
@@ -69,7 +69,7 @@ static void clearGrid(LineGrid *grid) {
 }
 
 static void addLineToGrid(LineGrid *grid, cv::Vec4i cv_line) {
-    f32 cell_size = f32(grid->cell_size);
+    f32 cell_size = (f32)grid->cell_size;
     f32 a[2]      = { cv_line[0] / cell_size, cv_line[1] / cell_size };
     f32 b[2]      = { cv_line[2] / cell_size, cv_line[3] / cell_size };
     f32 iter[2]   = { a[0], a[1] };
@@ -80,7 +80,7 @@ static void addLineToGrid(LineGrid *grid, cv::Vec4i cv_line) {
     dir[0] *= 0.5f * inv_dlen;
     dir[1] *= 0.5f * inv_dlen;
 
-    while (distSq2f(iter, b) > 1.0f) {
+    while (distSq(iter, b) > 1.0f) {
         LineCell *cell = grid->getCell(iter[0], iter[1]);
 
         if (cell->count <= LINE_CELL_MAX_COUNT) {
