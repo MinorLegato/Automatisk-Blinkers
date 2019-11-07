@@ -28,7 +28,7 @@ static inline f32 distSq(const f32 a[2], const f32 b[2]) {
 
 // ============================================ LINE GRID ============================================== //
 
-#define LINE_CELL_MAX_COUNT (64)
+#define LINE_CELL_MAX_COUNT (1)
 
 struct LineCell {
     int     count;
@@ -83,13 +83,17 @@ static void addLineToGrid(LineGrid *grid, cv::Vec4i cv_line) {
     while (distSq(iter, b) > 1.0f) {
         LineCell *cell = grid->getCell(iter[0], iter[1]);
 
-        if (cell->count <= LINE_CELL_MAX_COUNT) {
+        if (cell->count < LINE_CELL_MAX_COUNT) {
+            puts("start");
+
             f32 *line = cell->array[cell->count++];
 
             line[0] = cv_line[0];
             line[1] = cv_line[1];
             line[2] = cv_line[2];
             line[3] = cv_line[3];
+
+            puts("end");
         }
 
         iter[0] += dir[0];
