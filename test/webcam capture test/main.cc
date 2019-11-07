@@ -1,5 +1,5 @@
-#include "common.cc"
-#include "matToLines.cc"
+#include "../lib/common.cc"
+#include "../lib/matToLines.cc"
 
 int main(void) {
     cv::VideoCapture cap(0);
