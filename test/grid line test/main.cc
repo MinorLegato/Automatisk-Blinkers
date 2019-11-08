@@ -23,7 +23,11 @@ int main(void) {
         }
     }
 
-    getRoadState(grid);
+    RoadState state = getRoadState(grid);
+
+    if (state & ROAD_UP)    std::cout << "found up\n";
+    if (state & ROAD_LEFT)  std::cout << "found left\n";
+    if (state & ROAD_RIGHT) std::cout << "found right\n";
 
     {
         for (int y = 0; y < grid.height; ++y) {
@@ -32,7 +36,6 @@ int main(void) {
 
                 for (int i = 0; i < cell->count; ++i) {
                     const Line& line = cell->array[i];
-
                     cv::line(lines, { (int)line[0][0], (int)line[0][1] }, { (int)line[1][0], (int)line[1][1] }, { 255 }, 2);
                 }
 
@@ -54,3 +57,4 @@ int main(void) {
 
     cv::waitKey(0);
 }
+

@@ -58,16 +58,17 @@ static inline Vector2 norm(const Vector2 a) {
 #define LINE_CELL_MAX_COUNT (1)
 
 struct LineCell {
-    int32_t     count;
-    Line        array[LINE_CELL_MAX_COUNT];
+    int32_t count;
+    Line    array[LINE_CELL_MAX_COUNT];
     //
     void clear() { count = 0; }
 };
 
 struct LineGrid {
-    int32_t                 width;
-    int32_t                 height;
-    int32_t                 cell_size;
+    int32_t     width;
+    int32_t     height;
+    int32_t     cell_size;
+    //
     std::vector<LineCell>   cells;
 
     LineGrid(int cell_size) {
@@ -101,23 +102,24 @@ struct LineGrid {
     }
 
     void addLine(cv::Vec4i cv_line) {
-        float cs = (float)this->cell_size;
+        Line line = {
+            float(cv_line[0]),
+            float(cv_line[1]),
+            float(cv_line[2]),
+            float(cv_line[3])
+        };
 
-        Vector2 a       = { cv_line[0] / cs, cv_line[1] / cs };
-        Vector2 b       = { cv_line[2] / cs, cv_line[3] / cs };
-        Vector2 iter    = a;
-        Vector2 dir     = 0.5f * norm(b - a);
+        auto cs   = float(this->cell_size);
+        auto a    = line[0] / cs;
+        auto b    = line[1] / cs;
+        auto iter = a;
+        auto dir  = 0.5f * norm(b - a);
 
         while (contains(iter[0], iter[1]) &&  distSq(iter, b) > 1.0f) {
-            LineCell *cell = this->get(iter[0], iter[1]);
+            auto cell = this->get(iter[0], iter[1]);
 
             if (cell->count < LINE_CELL_MAX_COUNT) {
-                auto& line = cell->array[cell->count++];
-
-                line[0][0] = cv_line[0];
-                line[0][1] = cv_line[1];
-                line[1][0] = cv_line[2];
-                line[1][1] = cv_line[3];
+                cell->array[cell->count++] = line;
             }
 
             iter[0] += dir[0];
@@ -126,19 +128,18 @@ struct LineGrid {
     }
 };
 
+using RoadState = uint8_t;
 
-enum RoadState {
-    ROAD_STATE_NONE,
-    ROAD_STATE_ROAD,
-    ROAD_STATE_LANE,
-    ROAD_STATE_THREE_WAY,
-    ROAD_STATE_THREE_WAY_LEFT,
-    ROAD_STATE_THREE_WAY_RIGHT,
-    ROAD_STATE_FOUR_WAY,
-    ROAD_STATE_COUNT
+enum {
+    ROAD_NONE       = 0,
+    ROAD_UP         = (1 << 0),
+    ROAD_LEFT       = (1 << 1),
+    ROAD_RIGHT      = (1 << 2)
 };
 
 static RoadState getRoadState(const LineGrid& grid) {
+    RoadState result = 0;
+
     int sx = 1;
     int sy = 1;
     int ex = grid.width  - 2;
@@ -159,6 +160,6 @@ static RoadState getRoadState(const LineGrid& grid) {
     std::cout << "left:  " << line_count_left  << '\n';
     std::cout << "right: " << line_count_right << '\n';
 
-    return ROAD_STATE_NONE;
+    return result;
 }
 
