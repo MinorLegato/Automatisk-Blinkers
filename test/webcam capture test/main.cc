@@ -11,8 +11,8 @@ int main(void) {
     std::vector<cv::Vec4i> line_vector;
     line_vector.reserve(8 * 2048);
 
-    LineGrid grid;
-    initGrid(&grid, 32);
+    //LineGrid grid;
+    //initGrid(&grid, 32);
 
     while (cv::waitKey(16) != 27) {
         cap >> capture;
@@ -23,7 +23,6 @@ int main(void) {
 
         // find lines:
         {
-
             resizeGrid(&grid, capture.cols, capture.rows);
             clearGrid(&grid);
 

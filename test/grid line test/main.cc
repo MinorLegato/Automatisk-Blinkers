@@ -2,12 +2,12 @@
 #include "../lib/matToLines.cc"
 
 int main(void) {
-    cv::Mat capture = cv::imread("../testPics/3crossingtest2.png");
+    cv::Mat capture = cv::imread("../testPics/highwaytest.png");
 
     std::vector<cv::Vec4i> line_vector;
     line_vector.reserve(8 * 2048);
 
-    LineGrid grid(32);
+    Tilemap map(32);
 
     matToLines(capture, line_vector);
 
@@ -15,34 +15,39 @@ int main(void) {
 
     // find lines:
     {
-        grid.resize(capture.cols, capture.rows);
-        grid.clear();
+        map.resize(capture.cols, capture.rows);
+        map.clear();
 
         for (auto line : line_vector) {
-            grid.addLine(line);
+            map.addLine(line);
+            cv::line(lines, { line[0], line[1] }, { line[2], line[3] }, { 255 }, 2);
         }
     }
 
-    RoadState state = getRoadState(grid);
+    floodFill(&map, map.width / 2, map.height / 2, 2);
+
+    RoadState state = getRoadState(&map);
 
     if (state & ROAD_UP)    std::cout << "found up\n";
     if (state & ROAD_LEFT)  std::cout << "found left\n";
     if (state & ROAD_RIGHT) std::cout << "found right\n";
 
     {
-        for (int y = 0; y < grid.height; ++y) {
-            for (int x = 0; x < grid.width; ++x) {
-                const LineCell *cell = grid.get(x, y);
+        for (int y = 0; y < map.height; ++y) {
+            for (int x = 0; x < map.width; ++x) {
+                int tile = map.get(x, y);
 
-                for (int i = 0; i < cell->count; ++i) {
-                    const Line& line = cell->array[i];
-                    cv::line(lines, { (int)line[0][0], (int)line[0][1] }, { (int)line[1][0], (int)line[1][1] }, { 255 }, 2);
-                }
+                switch (tile) {
+                    case 0:
+                        putchar('.');
+                        break;
+                    case 1:
+                        putchar('#');
+                        break;
+                    case 2:
+                        putchar('-');
+                        break;
 
-                if (cell->count > 0) {
-                    putchar('#');
-                } else {
-                    putchar('.');
                 }
             }
 
