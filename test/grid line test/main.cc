@@ -7,7 +7,7 @@ int main(void) {
     std::vector<cv::Vec4i> line_vector;
     line_vector.reserve(8 * 2048);
 
-    Tilemap map(32);
+    Tilemap map(16);
 
     matToLines(capture, line_vector);
 
@@ -24,7 +24,7 @@ int main(void) {
         }
     }
 
-    floodFill(&map, map.width / 2, map.height / 2, 2);
+    floodFill(&map, map.width / 2, map.height / 2, TILE_ROAD);
 
     RoadState state = getRoadState(&map);
 
