@@ -77,7 +77,7 @@ struct Tilemap {
         tiles.resize(this->width * this->height);
     }
 
-    void addLine(cv::Vec4i cv_line, int line_marker = 1) {
+    void addLine(cv::Vec4i cv_line, int line_marker = TILE_LINE) {
         float cs      = this->cell_size;
         float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
         float b[2]    = { cv_line[2] / cs, cv_line[3] / cs };
@@ -97,7 +97,22 @@ struct Tilemap {
     }
 };
 
-static void floodFill(Tilemap *map, int start_x, int start_y, int marker) {
+static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_LINE) {
+    float inv_cell_size = 1.0f / map->cell_size;
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (data[y * width + x]) {
+                int tx = std::clamp<int>(x * inv_cell_size, 0, map->width);
+                int ty = std::clamp<int>(y * inv_cell_size, 0, map->height);
+
+                map->tiles[ty * map->width + tx] = marker;
+            }
+        }
+    }
+}
+
+static void floodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD) {
     struct Point { int x, y; };
 
     std::vector<Point>  queue;
@@ -115,7 +130,7 @@ static void floodFill(Tilemap *map, int start_x, int start_y, int marker) {
         map->tiles[current.y * map->width + current.x] = marker;
         visited[current.y * map->width + current.x]    = true;
 
-        const std::array<Point, 4> ns = {
+        const Point ns[4] = {
             current.x,     current.y - 1,
             current.x,     current.y + 1,
             current.x - 1, current.y,

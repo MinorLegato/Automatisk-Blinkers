@@ -7,12 +7,13 @@ int main(void) {
     std::vector<cv::Vec4i> line_vector;
     line_vector.reserve(8 * 2048);
 
-    Tilemap map(32);
+    Tilemap map(8);
 
     cv::Mat capture;
     while (cv::waitKey(16) != 27) {
-        cap >> capture;
+        system("cls");
 
+        cap >> capture;
 
         cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
 
@@ -21,29 +22,34 @@ int main(void) {
 
         matToLines(capture, line_vector);
 
-        cv::Mat lines = cv::Mat::zeros(capture.size(), capture.type());
+        //cv::Mat lines = cv::Mat::zeros(capture.size(), capture.type());
+
+        map.resize(capture.cols, capture.rows);
+        map.clear();
+
+        std::cout << map.width << ' ' << map.height << '\n';
 
         // find lines:
+#if 0
         {
-            map.resize(capture.cols, capture.rows);
-            map.clear();
-
             for (auto line : line_vector) {
-                map.addLine(line);
+                //map.addLine(line);
                 cv::line(lines, { line[0], line[1] }, { line[2], line[3] }, { 255 }, 2);
             }
         }
+#endif
+
+        tilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
 
         floodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
 
         RoadState state = getRoadState(&map);
 
-        system("cls");
         if (state & ROAD_UP)    std::cout << "found up\n";
         if (state & ROAD_LEFT)  std::cout << "found left\n";
         if (state & ROAD_RIGHT) std::cout << "found right\n";
 
-        {
+        if (1) {
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
                     int tile = map.get(x, y);
@@ -69,7 +75,7 @@ int main(void) {
         }
 
         cv::imshow("capture", capture);
-        cv::imshow("lines", lines);
+        //cv::imshow("lines", lines);
     }
 
     cv::waitKey(0);
