@@ -18,40 +18,30 @@ static float rsqrt(T val) {
     return val == T(0)? T(0) : T(1) / std::sqrt(val);
 }
 
-using Vector2 = std::array<float, 2>;
-using Line    = std::array<Vector2, 2>;
-
-static Vector2 operator+(const Vector2& a, const Vector2& b) { return { a[0] + b[0], a[1] + b[1] }; }
-static Vector2 operator-(const Vector2& a, const Vector2& b) { return { a[0] - b[0], a[1] - b[1] }; }
-static Vector2 operator*(const Vector2& a, float s) { return { a[0] * s, a[1] * s }; }
-static Vector2 operator*(float s, const Vector2& a) { return { a[0] * s, a[1] * s }; }
-static Vector2 operator/(const Vector2& a, float s) { return { a[0] / s, a[1] / s }; }
-
-static void operator+=(Vector2& a, const Vector2& b) { a = a - b; }
-static void operator-=(Vector2& a, const Vector2& b) { a = a - b; }
-static void operator*=(Vector2& a, const float s) { a = a * s; }
-static void operator/=(Vector2& a, const float s) { a = a / s; }
-
-static inline float dot(const Vector2& a, const Vector2& b) {
+static inline float dot(const float a[2], const float b[2]) {
     return a[0] * b[0] + a[1] * b[1];
 }
 
-static inline float lenSq(const Vector2& a) {
+static inline float lenSq(const float a[2]) {
     return dot(a, a);
 }
 
-static inline float len(const Vector2& a) {
+static inline float len(const float a[2]) {
     return std::sqrt(dot(a, a));
 }
 
-static inline float distSq(const Vector2& a, const Vector2& b) {
-    Vector2 c = { b[0] - a[0], b[1] - a[1] };
+static inline float distSq(const float a[2], const float b[2]) {
+    float c[2] = { b[0] - a[0], b[1] - a[1] };
     return c[0] * c[0] + c[1] * c[1];
 }
 
-static inline Vector2 norm(const Vector2 a) {
-    return a * rsqrt(lenSq(a));
+static inline void norm(float out[2], const float a[2]) {
+    float rlen = rsqrt(lenSq(a));
+
+    out[0] = a[0] * rlen;
+    out[1] = a[1] * rlen;
 }
+
 
 // ============================================ LINE GRID ============================================== //
 
@@ -88,24 +78,21 @@ struct Tilemap {
     }
 
     void addLine(cv::Vec4i cv_line, int line_marker = 1) {
-        Line line = {
-            float(cv_line[0]), float(cv_line[1]),
-            float(cv_line[2]), float(cv_line[3])
-        };
+        float cs        = this->cell_size;
+        float a[2]      = { cv_line[0] / cs, cv_line[1] / cs };
+        float b[2]      = { cv_line[2] / cs, cv_line[3] / cs };
+        float iter[2]   = { a[0], a[1] };
+        float dir[2]    = { b[0] - a[0], b[1] - a[1] };
 
-        auto cs   = float(this->cell_size);
-        auto a    = line[0] / cs;
-        auto b    = line[1] / cs;
-        auto iter = a;
-        auto dir  = 0.2f * norm(b - a);
+        norm(dir, dir);
 
         while (contains(iter[0], iter[1]) &&  distSq(iter, b) > 0.2f) {
             auto cell = this->get(iter[0], iter[1]);
 
             this->tiles[int(iter[1]) * this->width + int(iter[0])] = line_marker;
 
-            iter[0] += dir[0];
-            iter[1] += dir[1];
+            iter[0] += 0.2f * dir[0];
+            iter[1] += 0.2f * dir[1];
         }
     }
 };
