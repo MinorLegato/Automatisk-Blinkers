@@ -62,7 +62,9 @@ struct Tilemap {
     
     int get(int x, int y) const { return tiles[y * this->width + x]; }
 
-    void clear() { std::fill(RANGE(tiles), 0); }
+    void clear() {
+        std::fill(RANGE(tiles), 0);
+    }
 
     bool contains(int x, int y) const {
         if (x < 0 || x >= this->width)  return false;
