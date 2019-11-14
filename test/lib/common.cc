@@ -78,11 +78,11 @@ struct Tilemap {
     }
 
     void addLine(cv::Vec4i cv_line, int line_marker = 1) {
-        float cs        = this->cell_size;
-        float a[2]      = { cv_line[0] / cs, cv_line[1] / cs };
-        float b[2]      = { cv_line[2] / cs, cv_line[3] / cs };
-        float iter[2]   = { a[0], a[1] };
-        float dir[2]    = { b[0] - a[0], b[1] - a[1] };
+        float cs      = this->cell_size;
+        float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
+        float b[2]    = { cv_line[2] / cs, cv_line[3] / cs };
+        float iter[2] = { a[0], a[1] };
+        float dir[2]  = { b[0] - a[0], b[1] - a[1] };
 
         norm(dir, dir);
 
@@ -159,9 +159,9 @@ static RoadState getRoadState(const Tilemap *map) {
     int ex = map->width  - 2;
     int ey = map->height - 2;
 
-    for (int x = sx; x < ex; ++x) if (map->get(x, sy)) result |= ROAD_UP;
-    for (int y = sy; y < ey; ++y) if (map->get(sx, y)) result |= ROAD_LEFT;
-    for (int y = sy; y < ey; ++y) if (map->get(ex, y)) result |= ROAD_RIGHT;
+    for (int x = sx; x < ex; ++x) if (map->get(x, sy) == TILE_ROAD) result |= ROAD_UP;
+    for (int y = sy; y < ey; ++y) if (map->get(sx, y) == TILE_ROAD) result |= ROAD_LEFT;
+    for (int y = sy; y < ey; ++y) if (map->get(ex, y) == TILE_ROAD) result |= ROAD_RIGHT;
 
     return result;
 }
