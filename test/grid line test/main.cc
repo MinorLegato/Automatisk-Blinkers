@@ -5,6 +5,7 @@
 
 int main(void) {
     cv::VideoCapture cap("../testPics/test_video.mp4");
+    //cv::VideoCapture cap(0);
 
     Tilemap map(16);
 
@@ -19,9 +20,15 @@ int main(void) {
 
         cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
 
-        {
+        if (1) {
+            clock_t start = clock();
+            
             cv::flip(capture, capture, 0);
             cv::flip(capture, capture, 1);
+
+            clock_t end = clock();
+
+            printf("flip ms: %d\n", (int)(end - start));
         }
 
         {
@@ -53,12 +60,14 @@ int main(void) {
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        RoadState state = getRoadState(&map);
+        RoadState   state   = getRoadState(&map);
+        float       pos     = getRoadPosition(&map);
 
+        std::cout << "position: " << pos << '\n';
         if (state & ROAD_UP)    std::cout << "found up\n";
         if (state & ROAD_LEFT)  std::cout << "found left\n";
         if (state & ROAD_RIGHT) std::cout << "found right\n";
-
+    
         {
             cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
 

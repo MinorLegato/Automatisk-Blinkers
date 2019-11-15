@@ -153,10 +153,10 @@ static void floodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
 using RoadState = int;
 
 enum {
-    ROAD_NONE       = (0),
-    ROAD_UP         = (1 << 0),
-    ROAD_LEFT       = (1 << 1),
-    ROAD_RIGHT      = (1 << 2)
+    ROAD_NONE  = (0),
+    ROAD_UP    = (1 << 0),
+    ROAD_LEFT  = (1 << 1),
+    ROAD_RIGHT = (1 << 2)
 };
 
 static int getRoadHeight(const Tilemap *map) {
@@ -181,5 +181,19 @@ static RoadState getRoadState(const Tilemap *map) {
     for (int y = sy; y < ey; ++y) if (map->get(ex, y) == TILE_ROAD) result |= ROAD_RIGHT;
 
     return result;
+}
+
+static float getRoadPosition(const Tilemap *map) {
+    float center = 0.5f * map->width;
+
+    int road_left   = 0;
+    int road_right  = map->width - 1;
+
+    while (map->get(road_left,  map->height - 1) != TILE_ROAD) road_left++;
+    while (map->get(road_right, map->height - 1) != TILE_ROAD) road_right--;
+
+    float road_center = 0.5f * (road_right + road_left);
+
+    return center - road_center;
 }
 
