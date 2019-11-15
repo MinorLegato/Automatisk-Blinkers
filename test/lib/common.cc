@@ -210,3 +210,29 @@ static float getRoadPosition(const Tilemap *map) {
     return (center - road_center) / (0.5f * (road_right - road_left));
 }
 
+// ============================================ KLASSIFICATION ============================================== //
+
+
+struct IntersecPlacement {
+	int type;
+	float pos;
+};
+
+// 0 = no blink// 1 = right blink // -1 = left blink
+int Klass(std::vector<IntersecPlacement> &que){
+	float posSum = 0;
+	int typeSum = 0;
+	float posAvg = 0;
+	float typeAvg = 0;
+
+	for(IntersecPlacement temp : que){
+		posSum = posSum + temp.pos;
+		typeSum = typeSum + temp.type;
+	}
+	posAvg = posSum/que.size();
+	typeAvg = typeSum/que.size();
+
+	if(posAvg > 0.7) return 1;
+	else if (posAvg < -0.7) return -1;
+	else return 0;
+}
