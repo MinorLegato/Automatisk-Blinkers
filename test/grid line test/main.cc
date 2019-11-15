@@ -3,9 +3,9 @@
 
 #include "time.h"
 
-int main(void) {
-    //cv::VideoCapture cap("../testPics/test_video.mp4");
-    cv::VideoCapture cap(0);
+int main(void)
+{
+    cv::VideoCapture cap("../testPics/test_video.mp4");
 
     Tilemap map(8);
 
@@ -23,7 +23,7 @@ int main(void) {
 
         cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
 
-        if (0) {
+        if (1) {
             clock_t start = clock();
             
             cv::flip(capture, capture, 0);
@@ -36,20 +36,20 @@ int main(void) {
 
         {
             clock_t start = clock();
-            matToEdge(capture);
+            MatToEdge(capture);
             clock_t end = clock();
 
             printf("MatToLines ms: %d\n", (int)(end - start));
         }
 
-        map.resize(capture.cols, capture.rows);
-        map.clear();
+        map.Resize(capture.cols, capture.rows);
+        map.Clear();
 
         std::cout << map.width << ' ' << map.height << '\n';
 
         {
             clock_t start = clock();
-            tilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
+            TilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
             clock_t end = clock();
 
             printf("TilemapFill ms: %d\n", (int)(end - start));
@@ -57,16 +57,15 @@ int main(void) {
 
         {
             clock_t start = clock();
-            floodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
+            FloodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
             clock_t end = clock();
 
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        RoadState   state   = getRoadState(&map);
-        float       pos     = getRoadPosition(&map);
+        RoadState   state   = GetRoadState(&map);
+        float       pos     = GetRoadPosition(&map);
 
-        //placement.push_back({ state, pos });
         placement[index % 10] = { state, pos };
 
         int klass = Klass(placement);
@@ -85,7 +84,7 @@ int main(void) {
 
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
-                    int         tile    = map.get(x, y);
+                    int         tile    = map.Get(x, y);
                     cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                     switch (tile) {

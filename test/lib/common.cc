@@ -15,29 +15,35 @@
 // ========================================== UTIL FUNCS =============================================== //
 
 template <typename T>
-static float rsqrt(T val) {
+static float RSqrt(T val)
+{
     return val == T(0)? T(0) : T(1) / std::sqrt(val);
 }
 
-static inline float dot(const float a[2], const float b[2]) {
+static inline float Dot(const float a[2], const float b[2])
+{
     return a[0] * b[0] + a[1] * b[1];
 }
 
-static inline float lenSq(const float a[2]) {
-    return dot(a, a);
+static inline float LenSq(const float a[2])
+{
+    return Dot(a, a);
 }
 
-static inline float len(const float a[2]) {
-    return std::sqrt(dot(a, a));
+static inline float Len(const float a[2])
+{
+    return std::sqrt(Dot(a, a));
 }
 
-static inline float distSq(const float a[2], const float b[2]) {
+static inline float DistSq(const float a[2], const float b[2])
+{
     float c[2] = { b[0] - a[0], b[1] - a[1] };
     return c[0] * c[0] + c[1] * c[1];
 }
 
-static inline void norm(float out[2], const float a[2]) {
-    float rlen = rsqrt(lenSq(a));
+static inline void Norm(float out[2], const float a[2])
+{
+    float rlen = RSqrt(LenSq(a));
 
     out[0] = a[0] * rlen;
     out[1] = a[1] * rlen;
@@ -45,7 +51,9 @@ static inline void norm(float out[2], const float a[2]) {
 
 // ============================================ LINE GRID ============================================== //
 
-enum TileType : int {
+typedef int TileType;
+
+enum {
     TILE_NONE,
     TILE_EDGE,
     TILE_ROAD
@@ -55,43 +63,52 @@ struct Tilemap {
     int     width;
     int     height;
     int     cell_size;
-    //
-    std::vector<int>   tiles;
+    int     *tiles;
 
-    Tilemap(int cell_size) { this->cell_size = cell_size; }
+    Tilemap(int cell_size)
+    {
+        this->cell_size = cell_size;
+    }
     
-    int get(int x, int y) const { return tiles[y * this->width + x]; }
-
-    void clear() {
-        memset(tiles.data(), 0, tiles.size() * sizeof (int));
+    int Get(int x, int y) const
+    {
+        return tiles[y * width + x];
     }
 
-    bool contains(int x, int y) const {
-        if (x < 0 || x >= this->width)  return false;
-        if (y < 0 || y >= this->height) return false;
+    void Clear()
+    {
+        memset(tiles, 0, (width * height) * sizeof (int));
+    }
+
+    bool Contains(int x, int y) const
+    {
+        if (x < 0 || x >= width)  return false;
+        if (y < 0 || y >= height) return false;
         return true;
     }
 
-    void resize(int image_width, int image_height) {
-        width  = image_width  / this->cell_size;
-        height = image_height / this->cell_size;
+    void Resize(int image_width, int image_height)
+    {
+        width  = image_width  / cell_size;
+        height = image_height / cell_size;
 
-        tiles.resize(this->width * this->height);
+        tiles  = (int *)realloc(tiles, width * height * sizeof (int));
     }
 
-    void addLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE) {
-        float cs      = this->cell_size;
+    void AddLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE)
+    {
+        float cs      = cell_size;
         float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
         float b[2]    = { cv_line[2] / cs, cv_line[3] / cs };
         float iter[2] = { a[0], a[1] };
         float dir[2]  = { b[0] - a[0], b[1] - a[1] };
 
-        norm(dir, dir);
+        Norm(dir, dir);
 
-        while (contains(iter[0], iter[1]) &&  distSq(iter, b) > 0.2f) {
-            auto cell = this->get(iter[0], iter[1]);
+        while (Contains(iter[0], iter[1]) &&  DistSq(iter, b) > 0.2f) {
+            auto cell = Get(iter[0], iter[1]);
 
-            this->tiles[int(iter[1]) * this->width + int(iter[0])] = line_marker;
+            tiles[int(iter[1]) * this->width + int(iter[0])] = line_marker;
 
             iter[0] += 0.2f * dir[0];
             iter[1] += 0.2f * dir[1];
@@ -99,7 +116,8 @@ struct Tilemap {
     }
 };
 
-static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE) {
+static void TilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE)
+{
     float inv_cell_size = 1.0f / map->cell_size;
 
     for (int y = 0; y < height; ++y) {
@@ -114,7 +132,8 @@ static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int 
     }
 }
 
-static void floodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD) {
+static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
+{
     struct Point { int x, y; };
 
     std::vector<Point>  queue;
@@ -159,49 +178,52 @@ enum {
     ROAD_RIGHT = (1 << 2)
 };
 
-static int getRoadHeight(const Tilemap *map) {
+static int GetRoadHeight(const Tilemap *map)
+{
     for (int y = 0; y < map->height; ++y) {
         for (int x = 0; x < map->width; ++x) {
-            if (map->get(x, y) == TILE_ROAD) return y;
+            if (map->Get(x, y) == TILE_ROAD) return y;
         }
     }
     return 0;
 }
 
-static RoadState getRoadState(const Tilemap *map) {
+static RoadState GetRoadState(const Tilemap *map)
+{
     RoadState result = 0;
 
     int sx = 1;
-    int sy = getRoadHeight(map) + 1;
+    int sy = GetRoadHeight(map) + 1;
     int ex = map->width  - 2;
     int ey = map->height - 2;
 
-    for (int x = sx; x < ex; ++x) if (map->get(x, sy) == TILE_ROAD) {
+    for (int x = sx; x < ex; ++x) if (map->Get(x, sy) == TILE_ROAD) {
         result |= ROAD_UP;
     }
 
-    for (int y = sy; y < ey; ++y) if (map->get(sx, y) == TILE_ROAD) {
+    for (int y = sy; y < ey; ++y) if (map->Get(sx, y) == TILE_ROAD) {
         result |= ROAD_LEFT;
     }
 
-    for (int y = sy; y < ey; ++y) if (map->get(ex, y) == TILE_ROAD) {
+    for (int y = sy; y < ey; ++y) if (map->Get(ex, y) == TILE_ROAD) {
         result |= ROAD_RIGHT;
     }
 
     return result;
 }
 
-static float getRoadPosition(const Tilemap *map) {
+static float GetRoadPosition(const Tilemap *map)
+{
     float center = 0.5f * map->width;
 
     int road_left  = 0;
     int road_right = map->width - 1;
 
-    while (road_left < map->height && map->get(road_left, map->height - 1) != TILE_ROAD) {
+    while (road_left < map->height && map->Get(road_left, map->height - 1) != TILE_ROAD) {
         road_left++;
     }
 
-    while (road_right >= 0 && map->get(road_right, map->height - 1) != TILE_ROAD) {
+    while (road_right >= 0 && map->Get(road_right, map->height - 1) != TILE_ROAD) {
         road_right--;
     }
 
@@ -214,26 +236,28 @@ static float getRoadPosition(const Tilemap *map) {
 
 
 struct IntersecPlacement {
-	int type;
-	float pos;
+	int     type;
+	float   pos;
 };
 
 // 0 = no blink// 1 = right blink // -1 = left blink
-int Klass(std::vector<IntersecPlacement> &que){
-	float posSum = 0;
-	int typeSum = 0;
-	float posAvg = 0;
-	float typeAvg = 0;
+int Klass(std::vector<IntersecPlacement> &que)
+{
+	float pos_sum  = 0;
+	int   type_sum = 0;
+	float pos_avg  = 0;
+	float type_avg = 0;
 
 	for(IntersecPlacement temp : que) {
-		posSum = posSum + temp.pos;
-		typeSum = typeSum + temp.type;
+		pos_sum  = pos_sum + temp.pos;
+		type_sum = type_sum + temp.type;
 	}
 
-	posAvg  = posSum;
-	typeAvg = typeSum / que.size();
+	posAvg  = pos_sum;
+	typeAvg = type_sum / que.size();
 
-	if(posAvg > 0.7) return 1;
-	else if (posAvg < -0.7) return -1;
-	else return 0;
+	if (pos_avg > 0.7)  return 1;
+	if (pos_avg < -0.7) return -1;
+
+    return 0;
 }
