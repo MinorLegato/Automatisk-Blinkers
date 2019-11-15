@@ -137,9 +137,14 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
 {
     struct Point { int x, y; };
 
-    int     point_count     = 0;
-    Point   *point_stack    = (Point *)malloc(map->width * map->height * sizeof (Point));
-    int     *visited        = (int *)calloc(map->width * map->height, sizeof (int));
+    static Point *point_stack   = NULL;
+    static int   *visited       = NULL;
+
+    point_stack    = (Point *)realloc(point_stack, map->width * map->height * sizeof (Point));
+    visited        = (int *)realloc(visited, map->width * map->height * sizeof (int));
+
+    int point_count = 0;
+    memset(visited, 0, map->width * map->height * sizeof (int));
 
     point_stack[point_count++] = { start_x, start_y };
 
@@ -169,9 +174,6 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
             point_stack[point_count++] = n;
         }
     }
-
-    free(point_stack);
-    free(visited);
 }
 
 using RoadState = int;
