@@ -7,7 +7,7 @@ int main(void) {
     cv::VideoCapture cap("../testPics/test_video.mp4");
     //cv::VideoCapture cap(0);
 
-    Tilemap map(16);
+    Tilemap map(8);
 
     cv::namedWindow("capture", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
@@ -79,7 +79,7 @@ int main(void) {
                     cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                     switch (tile) {
-                        case TILE_LINE:
+                        case TILE_EDGE:
                             pixel[0] = 255;
                             pixel[1] = 0;
                             pixel[2] = 0;
@@ -101,6 +101,7 @@ int main(void) {
             cv::imshow("tilemap", tilemap);
         }
 
+        cv::resizeWindow("capture", capture.cols, capture.rows);
         cv::imshow("capture", capture);
     }
 

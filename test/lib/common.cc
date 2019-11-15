@@ -47,7 +47,7 @@ static inline void norm(float out[2], const float a[2]) {
 
 enum TileType : int {
     TILE_NONE,
-    TILE_LINE,
+    TILE_EDGE,
     TILE_ROAD
 };
 
@@ -63,7 +63,7 @@ struct Tilemap {
     int get(int x, int y) const { return tiles[y * this->width + x]; }
 
     void clear() {
-        std::fill(RANGE(tiles), 0);
+        memset(tiles.data(), 0, tiles.size() * sizeof (int));
     }
 
     bool contains(int x, int y) const {
@@ -79,7 +79,7 @@ struct Tilemap {
         tiles.resize(this->width * this->height);
     }
 
-    void addLine(cv::Vec4i cv_line, int line_marker = TILE_LINE) {
+    void addLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE) {
         float cs      = this->cell_size;
         float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
         float b[2]    = { cv_line[2] / cs, cv_line[3] / cs };
@@ -99,7 +99,7 @@ struct Tilemap {
     }
 };
 
-static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_LINE) {
+static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE) {
     float inv_cell_size = 1.0f / map->cell_size;
 
     for (int y = 0; y < height; ++y) {
@@ -176,9 +176,17 @@ static RoadState getRoadState(const Tilemap *map) {
     int ex = map->width  - 2;
     int ey = map->height - 2;
 
-    for (int x = sx; x < ex; ++x) if (map->get(x, sy) == TILE_ROAD) result |= ROAD_UP;
-    for (int y = sy; y < ey; ++y) if (map->get(sx, y) == TILE_ROAD) result |= ROAD_LEFT;
-    for (int y = sy; y < ey; ++y) if (map->get(ex, y) == TILE_ROAD) result |= ROAD_RIGHT;
+    for (int x = sx; x < ex; ++x) if (map->get(x, sy) == TILE_ROAD) {
+        result |= ROAD_UP;
+    }
+
+    for (int y = sy; y < ey; ++y) if (map->get(sx, y) == TILE_ROAD) {
+        result |= ROAD_LEFT;
+    }
+
+    for (int y = sy; y < ey; ++y) if (map->get(ex, y) == TILE_ROAD) {
+        result |= ROAD_RIGHT;
+    }
 
     return result;
 }
@@ -186,14 +194,19 @@ static RoadState getRoadState(const Tilemap *map) {
 static float getRoadPosition(const Tilemap *map) {
     float center = 0.5f * map->width;
 
-    int road_left   = 0;
-    int road_right  = map->width - 1;
+    int road_left  = 0;
+    int road_right = map->width - 1;
 
-    while (map->get(road_left,  map->height - 1) != TILE_ROAD) road_left++;
-    while (map->get(road_right, map->height - 1) != TILE_ROAD) road_right--;
+    while (road_left < map->height && map->get(road_left, map->height - 1) != TILE_ROAD) {
+        road_left++;
+    }
+
+    while (road_right >= 0 && map->get(road_right, map->height - 1) != TILE_ROAD) {
+        road_right--;
+    }
 
     float road_center = 0.5f * (road_right + road_left);
 
-    return center - road_center;
+    return (center - road_center) / (0.5f * (road_right - road_left));
 }
 
