@@ -12,12 +12,13 @@
 
 #define CLAMP(val, lo, hi)      ((val) < (lo)? (lo) : ((val > (hi)? (hi) : (val))))
 
+#define ARRAY_COUNT(array)      (sizeof (array) / sizeof (array[0]))
+
 // ========================================== UTIL FUNCS =============================================== //
 
-template <typename T>
-static float RSqrt(T val)
+static float RSqrt(float val)
 {
-    return val == T(0)? T(0) : T(1) / std::sqrt(val);
+    return val == 0.0f? 0.0f : 1.0f / std::sqrt(val);
 }
 
 static inline float Dot(const float a[2], const float b[2])
@@ -136,17 +137,16 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
 {
     struct Point { int x, y; };
 
-    std::vector<Point>  queue;
-    std::vector<bool>   visited(map->width * map->height);
+    int     point_count     = 0;
+    Point   *point_stack    = (Point *)malloc(map->width * map->height * sizeof (Point));
+    int     *visited        = (int *)calloc(map->width * map->height, sizeof (int));
 
-    queue.reserve(map->width * map->height);
-    queue.push_back({ start_x, start_y });
+    point_stack[point_count++] = { start_x, start_y };
 
     int start_tile = map->tiles[start_y * map->width + start_x];
 
-    while (!queue.empty()) {
-        Point current = queue[queue.size() - 1];
-        queue.pop_back();
+    while (point_count) {
+        Point current = point_stack[--point_count];
 
         map->tiles[current.y * map->width + current.x] = marker;
         visited[current.y * map->width + current.x]    = true;
@@ -158,15 +158,20 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
             current.x + 1, current.y
         };
 
-        for (auto n : ns) {
+        for (int i = 0; i < ARRAY_COUNT(ns); ++i) {
+            Point n = ns[i];
+
             if (n.x < 0 || n.x >= map->width)     continue;
             if (n.y < 0 || n.y >= map->height)    continue;
             if (visited[n.y * map->width + n.x])  continue;
             if (start_tile != map->tiles[n.y * map->width + n.x]) continue;
 
-            queue.push_back(n);
+            point_stack[point_count++] = n;
         }
     }
+
+    free(point_stack);
+    free(visited);
 }
 
 using RoadState = int;
@@ -243,8 +248,8 @@ struct IntersecPlacement {
 // 0 = no blink// 1 = right blink // -1 = left blink
 int Klass(std::vector<IntersecPlacement> &que)
 {
-	float pos_sum  = 0;
 	int   type_sum = 0;
+	float pos_sum  = 0;
 	float pos_avg  = 0;
 	float type_avg = 0;
 
@@ -253,8 +258,8 @@ int Klass(std::vector<IntersecPlacement> &que)
 		type_sum = type_sum + temp.type;
 	}
 
-	posAvg  = pos_sum;
-	typeAvg = type_sum / que.size();
+	pos_avg  = pos_sum;
+	type_avg = type_sum / que.size();
 
 	if (pos_avg > 0.7)  return 1;
 	if (pos_avg < -0.7) return -1;
