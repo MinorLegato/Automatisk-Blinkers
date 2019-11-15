@@ -11,5 +11,12 @@ void matToLines(cv::Mat &src, std::vector<cv::Vec4i> &linesP) {
 	cv::cvtColor(src, src, cv::COLOR_BGR2GRAY);
 	cv::GaussianBlur(src, src, { 5, 5 }, 0);
 	cv::Canny(src, src, 50, 150);
-	//cv::HoughLinesP(src, linesP, 1, CV_PI / 180.0f, 20, 10, 100);
+	cv::HoughLinesP(src, linesP, 1, CV_PI / 180.0f, 20, 10, 100);
 }
+
+void matToEdge(cv::Mat &src) {
+	cv::cvtColor(src, src, cv::COLOR_BGR2GRAY);
+	cv::GaussianBlur(src, src, { 5, 5 }, 0);
+	cv::Canny(src, src, 50, 150);
+}
+

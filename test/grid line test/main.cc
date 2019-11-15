@@ -1,13 +1,15 @@
 #include "../lib/common.cc"
 #include "../lib/matToLines.cc"
 
+#include "time.h"
+
 int main(void) {
     cv::VideoCapture cap("../testPics/test_video.mp4");
 
-    std::vector<cv::Vec4i> line_vector;
-    line_vector.reserve(8 * 2048);
-
     Tilemap map(16);
+
+    cv::namedWindow("capture", cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
 
     cv::Mat capture;
     while (cv::waitKey(16) != 27) {
@@ -15,62 +17,81 @@ int main(void) {
 
         cap >> capture;
 
-        puts("scale down");
         cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
 
-        puts("scale flip");
-        cv::flip(capture, capture, 0);
-        cv::flip(capture, capture, 1);
+        {
+            cv::flip(capture, capture, 0);
+            cv::flip(capture, capture, 1);
+        }
 
-        puts("do filters");
-        matToLines(capture, line_vector);
+        {
+            clock_t start = clock();
+            matToEdge(capture);
+            clock_t end = clock();
 
-        puts("resize map");
+            printf("MatToLines ms: %d\n", (int)(end - start));
+        }
+
         map.resize(capture.cols, capture.rows);
         map.clear();
 
         std::cout << map.width << ' ' << map.height << '\n';
 
-        puts("tilemap fill lines");
-        tilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
+        {
+            clock_t start = clock();
+            tilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
+            clock_t end = clock();
 
-        puts("tilemap flood fill road");
-        floodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
+            printf("TilemapFill ms: %d\n", (int)(end - start));
+        }
 
-        puts("get road state");
+        {
+            clock_t start = clock();
+            floodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
+            clock_t end = clock();
+
+            printf("FloodFill ms: %d\n", (int)(end - start));
+        }
+
         RoadState state = getRoadState(&map);
 
         if (state & ROAD_UP)    std::cout << "found up\n";
         if (state & ROAD_LEFT)  std::cout << "found left\n";
         if (state & ROAD_RIGHT) std::cout << "found right\n";
 
-        puts("render ascii map");
-        if (1) {
+        {
+            cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+
+            clock_t start = clock();
+
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
-                    int tile = map.get(x, y);
+                    int         tile    = map.get(x, y);
+                    cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                     switch (tile) {
-                        case 0:
-                            putchar('.');
+                        case TILE_LINE:
+                            pixel[0] = 255;
+                            pixel[1] = 0;
+                            pixel[2] = 0;
                             break;
-                        case 1:
-                            putchar('#');
+                        case TILE_ROAD:
+                            pixel[0] = 0;
+                            pixel[1] = 255;
+                            pixel[2] = 0;
                             break;
-                        case 2:
-                            putchar('-');
-                            break;
-
                     }
                 }
-
-                putchar('\n');
             }
 
-            putchar('\n');
+            clock_t end = clock();
+
+            printf("AsciiMap ms: %d\n", (int)(end - start));
+
+            cv::resizeWindow("tilemap", map.width * 8, map.height * 8);
+            cv::imshow("tilemap", tilemap);
         }
 
-        puts("render capture map");
         cv::imshow("capture", capture);
     }
 

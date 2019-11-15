@@ -4,12 +4,13 @@
 
 #include <iostream>
 
-#include <array>
 #include <vector>
 #include <cmath>
 #include <algorithm>
 
 #define RANGE(stl_container)    std::begin(stl_container), std::end(stl_container)
+
+#define CLAMP(val, lo, hi)      ((val) < (lo)? (lo) : ((val > (hi)? (hi) : (val))))
 
 // ========================================== UTIL FUNCS =============================================== //
 
@@ -41,7 +42,6 @@ static inline void norm(float out[2], const float a[2]) {
     out[0] = a[0] * rlen;
     out[1] = a[1] * rlen;
 }
-
 
 // ============================================ LINE GRID ============================================== //
 
@@ -105,8 +105,8 @@ static void tilemapFill(Tilemap *map, const unsigned char *data, int width, int 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             if (data[y * width + x]) {
-                int tx = std::clamp<int>(x * inv_cell_size, 0, map->width);
-                int ty = std::clamp<int>(y * inv_cell_size, 0, map->height);
+                int tx = CLAMP(x * inv_cell_size, 0, map->width - 1);
+                int ty = CLAMP(y * inv_cell_size, 0, map->height - 1);
 
                 map->tiles[ty * map->width + tx] = marker;
             }
