@@ -4,13 +4,16 @@
 #include "time.h"
 
 int main(void) {
-    cv::VideoCapture cap("../testPics/test_video.mp4");
-    //cv::VideoCapture cap(0);
+    //cv::VideoCapture cap("../testPics/test_video.mp4");
+    cv::VideoCapture cap(0);
 
     Tilemap map(8);
 
     cv::namedWindow("capture", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+
+    std::vector<IntersecPlacement> placement(10);
+    int index = 0;
 
     cv::Mat capture;
     while (cv::waitKey(16) != 27) {
@@ -20,7 +23,7 @@ int main(void) {
 
         cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
 
-        if (1) {
+        if (0) {
             clock_t start = clock();
             
             cv::flip(capture, capture, 0);
@@ -62,6 +65,13 @@ int main(void) {
 
         RoadState   state   = getRoadState(&map);
         float       pos     = getRoadPosition(&map);
+
+        //placement.push_back({ state, pos });
+        placement[index % 10] = { state, pos };
+
+        int klass = Klass(placement);
+
+        std::cout << "klass: " << klass << '\n';
 
         std::cout << "position: " << pos << '\n';
         if (state & ROAD_UP)    std::cout << "found up\n";

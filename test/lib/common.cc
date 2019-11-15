@@ -225,12 +225,13 @@ int Klass(std::vector<IntersecPlacement> &que){
 	float posAvg = 0;
 	float typeAvg = 0;
 
-	for(IntersecPlacement temp : que){
+	for(IntersecPlacement temp : que) {
 		posSum = posSum + temp.pos;
 		typeSum = typeSum + temp.type;
 	}
-	posAvg = posSum/que.size();
-	typeAvg = typeSum/que.size();
+
+	posAvg  = posSum;
+	typeAvg = typeSum / que.size();
 
 	if(posAvg > 0.7) return 1;
 	else if (posAvg < -0.7) return -1;
