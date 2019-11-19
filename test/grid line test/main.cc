@@ -6,8 +6,12 @@
 int main(void)
 {
     cv::VideoCapture cap("../testPics/test_video.mp4");
+    //cv::VideoCapture cap(0);
 
-    Tilemap map(8);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
+
+    Tilemap map(16);
 
     cv::namedWindow("capture", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
@@ -16,14 +20,26 @@ int main(void)
     int index = 0;
 
     cv::Mat capture;
-    while (cv::waitKey(16) != 27) {
+
+    int dialate_count = 0;
+
+    while (true) {
+        int key = cv::waitKey(16);
+
+        if (key == 27) break;
+
+        if (key == '1') dialate_count--;
+        if (key == '2') dialate_count++;
+
+        dialate_count = CLAMP(dialate_count, 0, 10);
+
         system("cls");
 
         cap >> capture;
 
-        cv::pyrDown(capture, capture, cv::Size { capture.cols / 2, capture.rows / 2 });
-
         if (1) {
+            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+
             clock_t start = clock();
             
             cv::flip(capture, capture, 0);
@@ -45,11 +61,17 @@ int main(void)
         map.Resize(capture.cols, capture.rows);
         map.Clear();
 
-        std::cout << map.width << ' ' << map.height << '\n';
+        printf("%d %d\n", map.width, map.height);
 
         {
             clock_t start = clock();
+
             TilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
+
+            for (int i = 0; i < dialate_count; ++i) {
+                TilemapDialate(&map);
+            }
+
             clock_t end = clock();
 
             printf("TilemapFill ms: %d\n", (int)(end - start));
@@ -57,25 +79,26 @@ int main(void)
 
         {
             clock_t start = clock();
-            FloodFill(&map, map.width / 2, map.height - 2, TILE_ROAD);
+            FloodFill(&map, map.width / 2, map.height - 1, TILE_ROAD);
             clock_t end = clock();
 
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        RoadState   state   = GetRoadState(&map);
-        float       pos     = GetRoadPosition(&map);
+        RoadState state = GetRoadState(&map);
+        float     pos   = GetRoadPosition(&map);
 
         placement[index % 10] = { state, pos };
 
         int klass = Klass(placement);
 
-        std::cout << "klass: " << klass << '\n';
+        printf("klass %d\n", klass);
 
-        std::cout << "position: " << pos << '\n';
-        if (state & ROAD_UP)    std::cout << "found up\n";
-        if (state & ROAD_LEFT)  std::cout << "found left\n";
-        if (state & ROAD_RIGHT) std::cout << "found right\n";
+        printf("position: %.2f\n", pos);
+
+        if (state & ROAD_UP)    puts("found up");
+        if (state & ROAD_LEFT)  puts("found left");
+        if (state & ROAD_RIGHT) puts("found right");
     
         {
             cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
@@ -106,7 +129,7 @@ int main(void)
 
             printf("AsciiMap ms: %d\n", (int)(end - start));
 
-            cv::resizeWindow("tilemap", map.width * 8, map.height * 8);
+            cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
             cv::imshow("tilemap", tilemap);
         }
 

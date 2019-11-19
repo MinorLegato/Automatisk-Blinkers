@@ -10,6 +10,9 @@
 
 #define RANGE(stl_container)    std::begin(stl_container), std::end(stl_container)
 
+#define CLAMP_MIN(val, lo)      ((val) < (lo)? (lo) : (val))
+#define CLAMP_MAX(val, hi)      ((val) > (hi)? (hi) : (val))
+
 #define CLAMP(val, lo, hi)      ((val) < (lo)? (lo) : ((val > (hi)? (hi) : (val))))
 
 #define ARRAY_COUNT(array)      (sizeof (array) / sizeof (array[0]))
@@ -66,29 +69,34 @@ struct Tilemap {
     int     cell_size;
     int     *tiles;
 
-    Tilemap(int cell_size)
+    inline Tilemap(int cell_size)
     {
         this->cell_size = cell_size;
     }
     
-    int Get(int x, int y) const
+    inline int Get(int x, int y) const
     {
         return tiles[y * width + x];
     }
 
-    void Clear()
+    inline void Set(int x, int y, int tile)
+    {
+        tiles[y * width + x] = tile;
+    }
+
+    inline void Clear()
     {
         memset(tiles, 0, (width * height) * sizeof (int));
     }
 
-    bool Contains(int x, int y) const
+    inline bool Contains(int x, int y) const
     {
         if (x < 0 || x >= width)  return false;
         if (y < 0 || y >= height) return false;
         return true;
     }
 
-    void Resize(int image_width, int image_height)
+    inline void Resize(int image_width, int image_height)
     {
         width  = image_width  / cell_size;
         height = image_height / cell_size;
@@ -96,7 +104,7 @@ struct Tilemap {
         tiles  = (int *)realloc(tiles, width * height * sizeof (int));
     }
 
-    void AddLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE)
+    inline void AddLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE)
     {
         float cs      = cell_size;
         float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
@@ -176,6 +184,75 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
     }
 }
 
+static void TilemapDialate(Tilemap *map, int tile_type = TILE_EDGE)
+{
+    static int *old = NULL;
+
+    old = (int *)realloc(old, map->width * map->height * sizeof (int));
+
+    memcpy(old, map->tiles, map->width * map->height * sizeof (int));
+
+    for (int ty = 0; ty < map->height; ++ty) {
+        for (int tx = 0; tx < map->width; ++tx) {
+            int tile = map->Get(tx, ty);
+            
+            if (tile != tile_type) {
+                int sx = CLAMP_MIN(tx - 1, 0);
+                int sy = CLAMP_MIN(ty - 1, 0);
+                int ex = CLAMP_MAX(tx + 1, map->width - 1);
+                int ey = CLAMP_MAX(ty + 1, map->height - 1);
+
+                for (int y = sy; y <= ey; ++y) {
+                    for (int x = sx; x <= ex; ++x) {
+                        if (old[y * map->width + x] == tile_type) {
+                            map->Set(tx, ty, tile_type);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
+{
+    static int *old = NULL;
+
+    old = (int *)realloc(old, map->width * map->height * sizeof (int));
+
+    memcpy(old, map->tiles, map->width * map->height * sizeof (int));
+
+    for (int ty = 0; ty < map->height; ++ty) {
+        for (int tx = 0; tx < map->width; ++tx) {
+            int tile = map->Get(tx, ty);
+            
+            if (tile == tile_type) {
+                int sx = CLAMP_MIN(tx - 1, 0);
+                int sy = CLAMP_MIN(ty - 1, 0);
+                int ex = CLAMP_MAX(tx + 1, map->width - 1);
+                int ey = CLAMP_MAX(ty + 1, map->height - 1);
+
+                int adj_count = 0;
+
+                for (int y = sy; y <= ey; ++y) {
+                    for (int x = sx; x <= ex; ++x) {
+                        if (x == tx && y == ty) continue;
+
+                        if (old[y * map->width + x] == tile_type) {
+                            adj_count++;
+                        }
+                    }
+                }
+
+                if (adj_count < tresh) {
+                    map->Set(tx, ty, TILE_NONE);
+                }
+            }
+        }
+    }
+}
+
+
 using RoadState = int;
 
 enum {
@@ -241,7 +318,6 @@ static float GetRoadPosition(const Tilemap *map)
 
 // ============================================ KLASSIFICATION ============================================== //
 
-
 struct IntersecPlacement {
 	int     type;
 	float   pos;
@@ -268,3 +344,4 @@ int Klass(std::vector<IntersecPlacement> &que)
 
     return 0;
 }
+
