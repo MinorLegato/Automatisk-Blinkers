@@ -252,8 +252,7 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
     }
 }
 
-
-using RoadState = int;
+typedef int RoadState;
 
 enum {
     ROAD_NONE  = (0),
@@ -332,7 +331,7 @@ int Klass(std::vector<IntersecPlacement> &que)
 	float type_avg = 0;
 
 	for(IntersecPlacement temp : que) {
-		pos_sum  = pos_sum + temp.pos;
+		pos_sum  = pos_sum  + temp.pos;
 		type_sum = type_sum + temp.type;
 	}
 
