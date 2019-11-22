@@ -318,30 +318,112 @@ static float GetRoadPosition(const Tilemap *map)
 
 // ============================================ KLASSIFICATION ============================================== //
 
+/*Pos
+	* -1 -> 1//left -> right
+*/
+
+/* Type                  nr
+	*	no way		     0
+	*	single file way	 1
+	*	up-left          3
+	*	up-right         5
+	*	left-right       6
+	*   up-left-right    7
+	*   two-files        9
+	*/
+
 struct IntersecPlacement {
-	int     type;
-	float   pos;
+	int type;
+	float pos;
 };
+struct KlassList {
+	static const int maxSize = 10;
+	static const int typeTypes = 10;
+	IntersecPlacement list[maxSize];
+	int index = 0;
+	int size = 0;
 
-// 0 = no blink// 1 = right blink // -1 = left blink
-int Klass(std::vector<IntersecPlacement> &que)
-{
-	int   type_sum = 0;
-	float pos_sum  = 0;
-	float pos_avg  = 0;
-	float type_avg = 0;
+	float pos = 0;
+	float posSum = 0;
 
-	for(IntersecPlacement temp : que) {
-		pos_sum  = pos_sum + temp.pos;
-		type_sum = type_sum + temp.type;
+	int type = 0;
+	int typeCheck[typeTypes];
+	
+
+	float posPrev = 0;
+	float posDifSum = 0;
+	float posDif = 0;
+
+	void push(IntersecPlacement newInput) {
+		//at size 10
+		if (size == maxSize) {
+
+			posSum = posSum - list[index].pos;
+
+			if (typeCheck[list[index].type] > 0) {
+				typeCheck[list[index].type]--;
+			}
+
+			list[index] = newInput;
+			posSum += list[index].pos;
+
+			typeCheck[list[index].type]++;
+			if (typeCheck[list[index].type] == (int)maxSize*0.8) {
+				type = typeCheck[list[index].type];
+			}
+			pos = posSum / maxSize;
+
+			index = (++index) % maxSize;
+		}
+
+		// at size 9
+		else if (size == (maxSize-1)) {
+
+			list[index] = newInput;
+			posSum += newInput.pos;
+			typeCheck[newInput.type]++;
+
+			for (IntersecPlacement temp : list) {
+				if (typeCheck[temp.type] > (int)maxSize*0.8) {
+					type = temp.type;
+				}
+			}
+			pos = posSum / maxSize;
+
+			posDifSum += posPrev - newInput.pos;
+			posPrev = newInput.pos;
+			posDif = posDifSum / maxSize;
+
+			index = (++index) % maxSize;
+			size++;
+		}
+		//size below 9
+		else {
+			list[index] = newInput;
+			posSum = posSum + newInput.pos;
+			typeCheck[newInput.type]++;
+
+
+			posDifSum += posPrev - newInput.pos;
+			posPrev = newInput.pos;
+
+
+			index++;
+			size++;
+		}
 	}
 
-	pos_avg  = pos_sum;
-	type_avg = type_sum / que.size();
 
-	if (pos_avg > 0.7)  return 1;
-	if (pos_avg < -0.7) return -1;
 
-    return 0;
-}
+    //1 = blink right, -1 = blink left
+	int analyze() {
+		switch (type) {
+		case 0:
+			return 0;
+		case 1:
+			return 1;
 
+		}
+
+	}
+};

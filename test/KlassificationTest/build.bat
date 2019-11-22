@@ -1,0 +1,1 @@
+clang++ main.cc -o klassTest.exe
