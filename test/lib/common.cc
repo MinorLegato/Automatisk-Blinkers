@@ -68,62 +68,38 @@ struct Tilemap {
     int     height;
     int     cell_size;
     int     *tiles;
-
-    inline Tilemap(int cell_size)
-    {
-        this->cell_size = cell_size;
-    }
-
-    inline int Get(int x, int y) const
-    {
-        return tiles[y * width + x];
-    }
-
-    inline void Set(int x, int y, int tile)
-    {
-        tiles[y * width + x] = tile;
-    }
-
-    inline void Clear()
-    {
-        memset(tiles, 0, (width * height) * sizeof (int));
-    }
-
-    inline bool Contains(int x, int y) const
-    {
-        if (x < 0 || x >= width)  return false;
-        if (y < 0 || y >= height) return false;
-        return true;
-    }
-
-    inline void Resize(int image_width, int image_height)
-    {
-        width  = image_width  / cell_size;
-        height = image_height / cell_size;
-
-        tiles  = (int *)realloc(tiles, width * height * sizeof (int));
-    }
-
-    inline void AddLine(cv::Vec4i cv_line, int line_marker = TILE_EDGE)
-    {
-        float cs      = cell_size;
-        float a[2]    = { cv_line[0] / cs, cv_line[1] / cs };
-        float b[2]    = { cv_line[2] / cs, cv_line[3] / cs };
-        float iter[2] = { a[0], a[1] };
-        float dir[2]  = { b[0] - a[0], b[1] - a[1] };
-
-        Norm(dir, dir);
-
-        while (Contains(iter[0], iter[1]) &&  DistSq(iter, b) > 0.2f) {
-            auto cell = Get(iter[0], iter[1]);
-
-            tiles[int(iter[1]) * this->width + int(iter[0])] = line_marker;
-
-            iter[0] += 0.2f * dir[0];
-            iter[1] += 0.2f * dir[1];
-        }
-    }
 };
+
+static int TilemapGet(const Tilemap *map, int x, int y)
+{
+    return map->tiles[y * map->width + x];
+}
+
+static void TilemapSet(Tilemap *map, int x, int y, int tile)
+{
+    map->tiles[y * map->width + x] = tile;
+}
+
+static void TilemapClear(Tilemap *map)
+{
+    memset(map->tiles, 0, (map->width * map->height) * sizeof (int));
+}
+
+static bool TilemapContains(const Tilemap *map, int x, int y)
+{
+    if (x < 0 || x >= map->width)  return false;
+    if (y < 0 || y >= map->height) return false;
+
+    return true;
+}
+
+static void TilemapResize(Tilemap *map, int image_width, int image_height, int cell_size)
+{
+    map->cell_size  = cell_size;
+    map->width      = image_width  / map->cell_size;
+    map->height     = image_height / map->cell_size;
+    map->tiles      = (int *)realloc(map->tiles, map->width * map->height * sizeof (int));
+}
 
 static void TilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE)
 {
@@ -194,7 +170,7 @@ static void TilemapDialate(Tilemap *map, int tile_type = TILE_EDGE)
 
     for (int ty = 0; ty < map->height; ++ty) {
         for (int tx = 0; tx < map->width; ++tx) {
-            int tile = map->Get(tx, ty);
+            int tile = TilemapGet(map, tx, ty);
 
             if (tile != tile_type) {
                 int sx = CLAMP_MIN(tx - 1, 0);
@@ -205,7 +181,7 @@ static void TilemapDialate(Tilemap *map, int tile_type = TILE_EDGE)
                 for (int y = sy; y <= ey; ++y) {
                     for (int x = sx; x <= ex; ++x) {
                         if (old[y * map->width + x] == tile_type) {
-                            map->Set(tx, ty, tile_type);
+                            TilemapSet(map, tx, ty, tile_type);
                         }
                     }
                 }
@@ -224,7 +200,7 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
 
     for (int ty = 0; ty < map->height; ++ty) {
         for (int tx = 0; tx < map->width; ++tx) {
-            int tile = map->Get(tx, ty);
+            int tile = TilemapGet(map, tx, ty);
 
             if (tile == tile_type) {
                 int sx = CLAMP_MIN(tx - 1, 0);
@@ -245,7 +221,7 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
                 }
 
                 if (adj_count < tresh) {
-                    map->Set(tx, ty, TILE_NONE);
+                    TilemapSet(map, tx, ty, TILE_NONE);
                 }
             }
         }
@@ -265,7 +241,7 @@ static int GetRoadHeight(const Tilemap *map)
 {
     for (int y = 0; y < map->height; ++y) {
         for (int x = 0; x < map->width; ++x) {
-            if (map->Get(x, y) == TILE_ROAD) return y;
+            if (TilemapGet(map, x, y) == TILE_ROAD) return y;
         }
     }
     return 0;
@@ -280,15 +256,15 @@ static RoadState GetRoadState(const Tilemap *map)
     int ex = map->width  - 2;
     int ey = map->height - 2;
 
-    for (int x = sx; x < ex; ++x) if (map->Get(x, sy) == TILE_ROAD) {
+    for (int x = sx; x < ex; ++x) if (TilemapGet(map, x, sy) == TILE_ROAD) {
         result |= ROAD_UP;
     }
 
-    for (int y = sy; y < ey; ++y) if (map->Get(sx, y) == TILE_ROAD) {
+    for (int y = sy; y < ey; ++y) if (TilemapGet(map, sx, y) == TILE_ROAD) {
         result |= ROAD_LEFT;
     }
 
-    for (int y = sy; y < ey; ++y) if (map->Get(ex, y) == TILE_ROAD) {
+    for (int y = sy; y < ey; ++y) if (TilemapGet(map, ex, y) == TILE_ROAD) {
         result |= ROAD_RIGHT;
     }
 
@@ -302,11 +278,11 @@ static float GetRoadPosition(const Tilemap *map)
     int road_left  = 0;
     int road_right = map->width - 1;
 
-    while (road_left < map->height && map->Get(road_left, map->height - 1) != TILE_ROAD) {
+    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
         road_left++;
     }
 
-    while (road_right >= 0 && map->Get(road_right, map->height - 1) != TILE_ROAD) {
+    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
         road_right--;
     }
 
@@ -335,10 +311,13 @@ struct IntersecPlacement {
 	int type;
 	float pos;
 };
+
 struct KlassList {
 	static const int maxSize = 10;
 	static const int typeTypes = 10;
+
 	IntersecPlacement list[maxSize];
+
 	int index = 0;
 	int size = 0;
 
@@ -377,7 +356,6 @@ struct KlassList {
 
 		// at size 9
 		else if (size == (maxSize-1)) {
-
 			list[index] = newInput;
 			posSum += newInput.pos;
 			typeCheck[newInput.type]++;
@@ -412,17 +390,15 @@ struct KlassList {
 		}
 	}
 
-
-
     //1 = blink right, -1 = blink left
 	int analyze() {
 		switch (type) {
-		case 0:
-			return 0;
-		case 1:
-			return 1;
-
+            case 0:
+			    return 0;
+		    case 1:
+			    return 1;
 		}
 
+        return 0;
 	}
 };

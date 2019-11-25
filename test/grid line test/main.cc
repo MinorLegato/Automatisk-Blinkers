@@ -11,7 +11,7 @@ int main(void)
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
 
-    Tilemap map(16);
+    Tilemap map;
 
     cv::namedWindow("capture", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
@@ -58,8 +58,8 @@ int main(void)
             printf("MatToLines ms: %d\n", (int)(end - start));
         }
 
-        map.Resize(capture.cols, capture.rows);
-        map.Clear();
+        TilemapResize(&map, capture.cols, capture.rows, 16);
+        TilemapClear(&map);
 
         printf("%d %d\n", map.width, map.height);
 
@@ -88,12 +88,6 @@ int main(void)
         RoadState state = GetRoadState(&map);
         float     pos   = GetRoadPosition(&map);
 
-        placement[index % 10] = { state, pos };
-
-        int klass = Klass(placement);
-
-        printf("klass %d\n", klass);
-
         printf("position: %.2f\n", pos);
 
         if (state & ROAD_UP)    puts("found up");
@@ -107,7 +101,7 @@ int main(void)
 
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
-                    int         tile    = map.Get(x, y);
+                    int         tile    = TilemapGet(&map, x, y);
                     cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                     switch (tile) {
