@@ -17,40 +17,166 @@
 
 #define ARRAY_COUNT(array)      (sizeof (array) / sizeof (array[0]))
 
-// ========================================== UTIL FUNCS =============================================== //
+typedef unsigned char Pixel[3];
 
-static float RSqrt(float val)
+static const float kernel5_gaussian_blur[5][5] = {
+    2.0f / 159.0f, 4.0f  / 159.0f, 5.0f  / 159.0f, 4.0f  / 159.0f, 2.0f / 159.0f,
+    4.0f / 159.0f, 9.0f  / 159.0f, 12.0f / 159.0f, 9.0f  / 159.0f, 4.0f / 159.0f,
+    5.0f / 159.0f, 12.0f / 159.0f, 15.0f / 159.0f, 12.0f / 159.0f, 5.0f / 159.0f,
+    4.0f / 159.0f, 9.0f  / 159.0f, 12.0f / 159.0f, 9.0f  / 159.0f, 4.0f / 159.0f,
+    2.0f / 159.0f, 4.0f  / 159.0f, 5.0f  / 159.0f, 4.0f  / 159.0f, 2.0f / 159.0f
+};
+
+static const float kernel5_box_blur[5][5] = {
+    1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f,
+    1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f,
+    1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f,
+    1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f,
+    1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f, 1.0f / 25.0f
+};
+
+static const float kernel5_canny[5][5] = {
+     -1, -1, -1, -1, -1,
+     -1, -1, -1, -1, -1,
+     -1, -1, 24, -1, -1,
+     -1, -1, -1, -1, -1,
+     -1, -1, -1, -1, -1
+};
+
+static const float kernel3_canny[3][3] = {
+    -1, -1, -1,
+    -1,  8, -1,
+    -1, -1, -1
+};
+
+static const float kernel3_ones[3][3] = {
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1
+};
+
+// ===================================== IMAGE PROCESSING ON C-TYPES ================================================= //
+// NOTE(anton): Warning! these function assumes that dst has enough memory!
+
+static void GrayscaleFromRgb(unsigned char *dst, const Pixel *src, int width, int height)
 {
-    return val == 0.0f? 0.0f : 1.0f / std::sqrt(val);
+    int size = width * height;
+
+    for (int i = 0; i < size; ++i) {
+        const unsigned char *pixel = src[i];
+
+        dst[i] = 0.3f * pixel[0] + 0.59f * pixel[1] + 0.11f * pixel[2];
+    }
 }
 
-static inline float Dot(const float a[2], const float b[2])
+static void GrayscaleApplyKernel(unsigned char *dst, const unsigned char *src, int width, int height, const float kernel[3][3])
 {
-    return a[0] * b[0] + a[1] * b[1];
+    for (int iy = 1; iy < height - 1; iy++) {
+        for (int ix = 1; ix < width - 1; ix++) {
+            int result = 0;
+
+            for (int ky = 0; ky < 3; ky++) {
+                int y = iy + ky - 1;
+
+                for (int kx = 0; kx < 3; kx++) {
+                    int x = ix + kx - 1;
+                    result += kernel[ky][kx] * src[y * width + x];
+                }
+            }
+
+            if (result < 0)   result = 0;
+            if (result > 255) result = 255;
+            
+            dst[iy * width + ix] = result;
+        }
+    }
 }
 
-static inline float LenSq(const float a[2])
+static void GrayscaleApplyKernel(unsigned char *dst, const unsigned char *src, int width, int height, const float kernel[5][5])
 {
-    return Dot(a, a);
+    for (int iy = 2; iy < height - 2; ++iy) {
+        for (int ix = 2; ix < width - 2; ++ix) {
+            int result = 0;
+            //
+            for (int ky = 0; ky < 5; ++ky) {
+                int y = iy + ky - 2;
+
+                for (int kx = 0; kx < 5; ++kx) {
+                    int x = ix + kx - 2;
+                    result += kernel[ky][kx] * src[y * width + x];
+                }
+            }
+
+            if (result < 0)   result = 0;
+            if (result > 255) result = 255;
+
+            dst[iy * width + ix] = result;
+        }
+    }
 }
 
-static inline float Len(const float a[2])
+// ==================================================================================================================== //
+
+struct Rgb {
+    int     width;
+    int     height;
+    Pixel   *pixels;
+};
+
+struct Grayscale {
+    int             width;
+    int             height;
+    unsigned char   *pixels;
+};
+
+static Grayscale GrayscaleCreate(int width, int height)
 {
-    return std::sqrt(Dot(a, a));
+    Grayscale gray;
+
+    gray.width = width;
+    gray.height = height;
+
+    return gray;
 }
 
-static inline float DistSq(const float a[2], const float b[2])
+static void GrayscaleResize(Grayscale *gray, int width, int height)
 {
-    float c[2] = { b[0] - a[0], b[1] - a[1] };
-    return c[0] * c[0] + c[1] * c[1];
+    gray->width = width;
+    gray->height = height;
+    gray->pixels = (unsigned char *)realloc(gray->pixels, gray->width * gray->height * sizeof (unsigned char));
 }
 
-static inline void Norm(float out[2], const float a[2])
+static void GrayscaleFromRgb(Grayscale *gray, const Rgb *rgb)
 {
-    float rlen = RSqrt(LenSq(a));
+    gray->width     = rgb->width;
+    gray->height    = rgb->height;
+    gray->pixels    = (unsigned char *)realloc(gray->pixels, gray->width * gray->height * sizeof (unsigned char));
 
-    out[0] = a[0] * rlen;
-    out[1] = a[1] * rlen;
+    GrayscaleFromRgb(gray->pixels, rgb->pixels, gray->width, gray->height);
+}
+
+static void GrayscaleApplyKernel(Grayscale* dst, const Grayscale *src, const float kernel[3][3])
+{
+    int image_width  = src->width;
+    int image_height = src->height;
+
+    dst->width  = image_width;
+    dst->height = image_height;
+    dst->pixels = (unsigned char*)realloc(dst->pixels, image_width * image_height * sizeof (unsigned char));
+
+    GrayscaleApplyKernel(dst->pixels, src->pixels, image_width, image_height, kernel);
+}
+
+static void GrayscaleApplyKernel(Grayscale* dst, const Grayscale *src, const float kernel[5][5])
+{
+    int image_width  = src->width;
+    int image_height = src->height;
+
+    dst->width  = image_width;
+    dst->height = image_height;
+    dst->pixels = (unsigned char*)realloc(dst->pixels, image_width * image_height * sizeof (unsigned char));
+
+    GrayscaleApplyKernel(dst->pixels, src->pixels, image_width, image_height, kernel);
 }
 
 // ============================================ LINE GRID ============================================== //
@@ -101,7 +227,7 @@ static void TilemapResize(Tilemap *map, int image_width, int image_height, int c
     map->tiles      = (int *)realloc(map->tiles, map->width * map->height * sizeof (int));
 }
 
-static void TilemapFill(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE)
+static void TilemapFillEdges(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE)
 {
     float inv_cell_size = 1.0f / map->cell_size;
 
@@ -117,18 +243,15 @@ static void TilemapFill(Tilemap *map, const unsigned char *data, int width, int 
     }
 }
 
-static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
+static void TilemapFloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
 {
     struct Point { int x, y; };
 
     static Point *point_stack   = NULL;
-    static int   *visited       = NULL;
 
-    point_stack    = (Point *)realloc(point_stack, map->width * map->height * sizeof (Point));
-    visited        = (int *)realloc(visited, map->width * map->height * sizeof (int));
+    point_stack = (Point *)realloc(point_stack, map->width * map->height * sizeof (Point));
 
     int point_count = 0;
-    memset(visited, 0, map->width * map->height * sizeof (int));
 
     point_stack[point_count++] = { start_x, start_y };
 
@@ -138,7 +261,6 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
         Point current = point_stack[--point_count];
 
         map->tiles[current.y * map->width + current.x] = marker;
-        visited[current.y * map->width + current.x]    = true;
 
         const Point ns[4] = {
             current.x,     current.y - 1,
@@ -150,9 +272,9 @@ static void FloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_
         for (int i = 0; i < ARRAY_COUNT(ns); ++i) {
             Point n = ns[i];
 
-            if (n.x < 0 || n.x >= map->width)     continue;
-            if (n.y < 0 || n.y >= map->height)    continue;
-            if (visited[n.y * map->width + n.x])  continue;
+            if (n.x < 0 || n.x >= map->width)  continue;
+            if (n.y < 0 || n.y >= map->height) continue;
+            if (map->tiles[n.y * map->width + n.x] == marker)     continue;
             if (start_tile != map->tiles[n.y * map->width + n.x]) continue;
 
             point_stack[point_count++] = n;

@@ -16,9 +16,6 @@ int main(void)
     cv::namedWindow("capture", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
 
-    std::vector<IntersecPlacement> placement(10);
-    int index = 0;
-
     cv::Mat capture;
 
     int dialate_count = 0;
@@ -52,7 +49,9 @@ int main(void)
 
         {
             clock_t start = clock();
+
             MatToEdge(capture);
+
             clock_t end = clock();
 
             printf("MatToLines ms: %d\n", (int)(end - start));
@@ -66,7 +65,7 @@ int main(void)
         {
             clock_t start = clock();
 
-            TilemapFill(&map, capture.ptr(), capture.cols, capture.rows);
+            TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
 
             for (int i = 0; i < dialate_count; ++i) {
                 TilemapDialate(&map);
@@ -79,7 +78,7 @@ int main(void)
 
         {
             clock_t start = clock();
-            FloodFill(&map, map.width / 2, map.height - 1, TILE_ROAD);
+            TilemapFloodFill(&map, map.width / 2, map.height - 1, TILE_ROAD);
             clock_t end = clock();
 
             printf("FloodFill ms: %d\n", (int)(end - start));
