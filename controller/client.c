@@ -31,11 +31,11 @@ static void controllerUpdate(Controller *c) {
     }
 
     {
-        if (platform.keyboard.state[KEY_UP])   c->thrust   = INT8_MAX;
-        if (platform.keyboard.state[KEY_DOWN]) c->thrust   = INT8_MIN;
+        if (platform.keyboard.state[KEY_UP])   c->thrust   = INT8_MAX / 4;
+        if (platform.keyboard.state[KEY_DOWN]) c->thrust   = INT8_MIN / 4;
 
-        if (platform.keyboard.state[KEY_LEFT])  c->steering = INT8_MIN;
-        if (platform.keyboard.state[KEY_RIGHT]) c->steering = INT8_MAX;
+        if (platform.keyboard.state[KEY_LEFT])  c->steering = INT8_MIN / 2;
+        if (platform.keyboard.state[KEY_RIGHT]) c->steering = INT8_MAX / 2;
 
         if (platform.keyboard.pressed[KEY_Z]) c->blink--;
         if (platform.keyboard.pressed[KEY_X]) c->blink++;
@@ -52,9 +52,9 @@ int main(void) {
     Controller  controller  = {0};
     Client      client      = {0};
 
-    const char *ip = "192.168.137.209";
+    const char *ip = "192.168.137.146";
     
-    NetClientInit(&client, LOCAL_HOST, 8888);
+    NetClientInit(&client, ip, 8888);
 
     while (!platform.close) {
         float t = platform.time.delta;

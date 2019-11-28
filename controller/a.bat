@@ -1,4 +1,3 @@
 @echo off
-start server.exe
-start client.exe
-exit
+REM start server.exe
+client.exe
