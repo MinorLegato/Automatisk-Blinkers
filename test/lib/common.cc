@@ -19,6 +19,44 @@
 
 typedef unsigned char Pixel[3];
 
+static float RSqrt(float n)
+{
+    return n == 0? 0 : sqrtf(n);
+}
+
+struct v2
+{
+    float   x;
+    float   y;
+};
+
+static float Dot(v2 a, v2 b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
+static float LenSq(v2 a)
+{
+    return Dot(a, a);
+}
+
+static float Len(v2 a)
+{
+    return sqrtf(LenSq(a));
+}
+
+static v2 Norm(v2 a)
+{
+    float rlen = RSqrt(LenSq(a));
+
+    a.x /= rlen;
+    a.y /= rlen;
+
+    return a;
+}
+
+// =================================================== KERNELS ====================================================== //
+
 static const float kernel5_gaussian_blur[5][5] = {
     2.0f / 159.0f, 4.0f  / 159.0f, 5.0f  / 159.0f, 4.0f  / 159.0f, 2.0f / 159.0f,
     4.0f / 159.0f, 9.0f  / 159.0f, 12.0f / 159.0f, 9.0f  / 159.0f, 4.0f / 159.0f,
@@ -47,12 +85,6 @@ static const float kernel3_canny[3][3] = {
     -1, -1, -1,
     -1,  8, -1,
     -1, -1, -1
-};
-
-static const float kernel3_ones[3][3] = {
-    1, 1, 1,
-    1, 1, 1,
-    1, 1, 1
 };
 
 // ===================================== IMAGE PROCESSING ON C-TYPES ================================================= //
@@ -117,13 +149,15 @@ static void GrayscaleApplyKernel(unsigned char *dst, const unsigned char *src, i
 
 // ==================================================================================================================== //
 
-struct Rgb {
+struct Rgb
+{
     int     width;
     int     height;
     Pixel   *pixels;
 };
 
-struct Grayscale {
+struct Grayscale
+{
     int             width;
     int             height;
     unsigned char   *pixels;
@@ -183,13 +217,15 @@ static void GrayscaleApplyKernel(Grayscale* dst, const Grayscale *src, const flo
 
 typedef int TileType;
 
-enum {
+enum
+{
     TILE_NONE,
     TILE_EDGE,
     TILE_ROAD
 };
 
-struct Tilemap {
+struct Tilemap
+{
     int     width;
     int     height;
     int     cell_size;
@@ -215,7 +251,6 @@ static bool TilemapContains(const Tilemap *map, int x, int y)
 {
     if (x < 0 || x >= map->width)  return false;
     if (y < 0 || y >= map->height) return false;
-
     return true;
 }
 
@@ -351,19 +386,21 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
 }
 
 typedef int RoadState;
-
-enum {
-    ROAD_NONE  = (0),
-    ROAD_UP    = (1 << 0),
-    ROAD_LEFT  = (1 << 1),
-    ROAD_RIGHT = (1 << 2)
+enum
+{
+    ROAD_NONE       = (0),
+    ROAD_UP         = (1 << 0),
+    ROAD_LEFT       = (1 << 1),
+    ROAD_RIGHT      = (1 << 2),
+    ROAD_TWO_LANES  = (1 << 3),
 };
 
 static int GetRoadHeight(const Tilemap *map)
 {
     for (int y = 0; y < map->height; ++y) {
         for (int x = 0; x < map->width; ++x) {
-            if (TilemapGet(map, x, y) == TILE_ROAD) return y;
+            if (TilemapGet(map, x, y) == TILE_ROAD)
+                return y;
         }
     }
     return 0;
@@ -378,16 +415,20 @@ static RoadState GetRoadState(const Tilemap *map)
     int ex = map->width  - 2;
     int ey = map->height - 2;
 
-    for (int x = sx; x < ex; ++x) if (TilemapGet(map, x, sy) == TILE_ROAD) {
-        result |= ROAD_UP;
-    }
+    for (int x = sx; x < ex; ++x)
+        if (TilemapGet(map, x, sy) == TILE_ROAD)
+            result |= ROAD_UP;
 
-    for (int y = sy; y < ey; ++y) if (TilemapGet(map, sx, y) == TILE_ROAD) {
-        result |= ROAD_LEFT;
-    }
+    for (int y = sy; y < ey; ++y)
+        if (TilemapGet(map, sx, y) == TILE_ROAD)
+            result |= ROAD_LEFT;
 
-    for (int y = sy; y < ey; ++y) if (TilemapGet(map, ex, y) == TILE_ROAD) {
-        result |= ROAD_RIGHT;
+    for (int y = sy; y < ey; ++y)
+        if (TilemapGet(map, ex, y) == TILE_ROAD)
+            result |= ROAD_RIGHT;
+
+    if ((result & ROAD_UP) == result) {
+        //
     }
 
     return result;
@@ -400,17 +441,30 @@ static float GetRoadPosition(const Tilemap *map)
     int road_left  = 0;
     int road_right = map->width - 1;
 
-    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
+    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD)
         road_left++;
-    }
 
-    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
+    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD)
         road_right--;
-    }
 
     float road_center = 0.5f * (road_right + road_left);
 
     return (center - road_center) / (0.5f * (road_right - road_left));
+}
+
+static v2 GetRoadCenterVector(const Tilemap *map)
+{
+    int height = GetRoadHeight(map);
+
+    v2 top_left  = { 0.0f,          0.0f };
+    v2 top_right = { map->width,    0.0f };
+    v2 bot_left  = { 0.0f,          map->height };
+    v2 bot_right = { map->width,    map->height };
+
+    v2 center_top = { top_right.x - top_left.x, top_right.y - top_left.y };
+    v2 center_bot = { bot_right.x - bot_left.x, bot_right.y - bot_left.y };
+
+    return Norm(dir);
 }
 
 // ============================================ KLASSIFICATION ============================================== //
