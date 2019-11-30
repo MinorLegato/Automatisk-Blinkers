@@ -84,6 +84,10 @@ int main(void)
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
+        v2 dir = GetRoadDir(&map);
+
+        TilemapDrawEdge(&map, { 0.5f * map.width, map.height - 1.0f }, dir);
+
         RoadState state = GetRoadState(&map);
         float     pos   = GetRoadPosition(&map);
 

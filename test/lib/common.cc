@@ -385,6 +385,18 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
     }
 }
 
+static void TilemapDrawEdge(Tilemap *map, v2 pos, v2 dir)
+{
+    v2 iter = pos;
+
+    while (TilemapContains(map, iter.x, iter.y)) {
+        TilemapSet(map, pos.x, pos.y, TILE_EDGE);
+
+        iter.x += 0.5f * dir.x;
+        iter.y += 0.5f * dir.y;
+    }
+}
+
 typedef int RoadState;
 enum
 {
@@ -403,6 +415,7 @@ static int GetRoadHeight(const Tilemap *map)
                 return y;
         }
     }
+
     return 0;
 }
 
@@ -453,19 +466,24 @@ static float GetRoadPosition(const Tilemap *map)
     return (center - road_center) / (0.5f * (road_right - road_left));
 }
 
-static v2 GetRoadCenterVector(const Tilemap *map)
+static v2 GetRoadDir(const Tilemap *map)
 {
-    int height = GetRoadHeight(map);
+    v2 top_left  = { 0.0f,              (float)map->height };
+    v2 top_right = { (float)map->width, (float)map->height };
+    v2 bot_left  = { 0.0f,              0.0f };
+    v2 bot_right = { (float)map->width, 0.0f };
 
-    v2 top_left  = { 0.0f,              0.0f };
-    v2 top_right = { (float)map->width, 0.0f };
-    v2 bot_left  = { 0.0f,              (float)map->height };
-    v2 bot_right = { (float)map->width, (float)map->height };
+    v2 center_top = { 
+        0.5f * (top_right.x + top_left.x),
+        0.5f * (top_right.y + top_left.y)
+    };
 
-    v2 center_top = { top_right.x - top_left.x, top_right.y - top_left.y };
-    v2 center_bot = { bot_right.x - bot_left.x, bot_right.y - bot_left.y };
+    v2 center_bot = {
+        0.5f * (bot_right.x - bot_left.x),
+        0.5f * (bot_right.y - bot_left.y)
+    };
 
-    v2 dir = { 0.0f, 0.0f };
+    v2 dir = { center_top.x - center_bot.x, center_bot.y - center_top.y };
 
     return Norm(dir);
 }
