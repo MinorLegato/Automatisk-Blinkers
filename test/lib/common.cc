@@ -436,16 +436,17 @@ static RoadState GetRoadState(const Tilemap *map)
 
 static float GetRoadPosition(const Tilemap *map)
 {
-    float center = 0.5f * map->width;
+    float center     = 0.5f * map->width;
+    int   road_left  = 0;
+    int   road_right = map->width - 1;
 
-    int road_left  = 0;
-    int road_right = map->width - 1;
-
-    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD)
+    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
         road_left++;
+    }
 
-    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD)
+    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
         road_right--;
+    }
 
     float road_center = 0.5f * (road_right + road_left);
 
@@ -456,13 +457,15 @@ static v2 GetRoadCenterVector(const Tilemap *map)
 {
     int height = GetRoadHeight(map);
 
-    v2 top_left  = { 0.0f,          0.0f };
-    v2 top_right = { map->width,    0.0f };
-    v2 bot_left  = { 0.0f,          map->height };
-    v2 bot_right = { map->width,    map->height };
+    v2 top_left  = { 0.0f,              0.0f };
+    v2 top_right = { (float)map->width, 0.0f };
+    v2 bot_left  = { 0.0f,              (float)map->height };
+    v2 bot_right = { (float)map->width, (float)map->height };
 
     v2 center_top = { top_right.x - top_left.x, top_right.y - top_left.y };
     v2 center_bot = { bot_right.x - bot_left.x, bot_right.y - bot_left.y };
+
+    v2 dir = { 0.0f, 0.0f };
 
     return Norm(dir);
 }
@@ -486,11 +489,13 @@ struct InterPos {
 	int type;
 	float pos;
 };
+
 struct InterPosList {
 	static const int maxSize = 10;
 	static const int typeTypes = 10;
 	static const int difListSize = (int)maxSize * 0.5;
 	static const int typeThreshold = (int)maxSize * 0.8;
+
 	InterPos list[maxSize];
 	int index = 0;
 	int size = 0;
