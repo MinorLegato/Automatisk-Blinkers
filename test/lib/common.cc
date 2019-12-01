@@ -45,6 +45,19 @@ static float Len(v2 a)
     return sqrtf(LenSq(a));
 }
 
+static float DistSq(v2 a, v2 b)
+{
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+
+    return dx * dx + dy * dy;
+}
+
+static float Dist(v2 a, v2 b)
+{
+    return sqrtf(DistSq(a, b));
+}
+
 static v2 Norm(v2 a)
 {
     float rlen = RSqrt(LenSq(a));
@@ -251,6 +264,7 @@ static bool TilemapContains(const Tilemap *map, int x, int y)
 {
     if (x < 0 || x >= map->width)  return false;
     if (y < 0 || y >= map->height) return false;
+
     return true;
 }
 
@@ -385,12 +399,13 @@ static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
     }
 }
 
-static void TilemapDrawEdge(Tilemap *map, v2 pos, v2 dir)
+static void TilemapDrawLine(Tilemap *map, v2 start, v2 end, int pen = TILE_EDGE)
 {
-    v2 iter = pos;
+    v2 dir  = Norm({ end.x - start.x, end.y - start.y });
+    v2 iter = start;
 
-    while (TilemapContains(map, iter.x, iter.y)) {
-        TilemapSet(map, pos.x, pos.y, TILE_EDGE);
+    while (DistSq(iter, end) > 1.0f) {
+        TilemapSet(map, iter.x, iter.y, TILE_EDGE);
 
         iter.x += 0.5f * dir.x;
         iter.y += 0.5f * dir.y;
@@ -466,26 +481,79 @@ static float GetRoadPosition(const Tilemap *map)
     return (center - road_center) / (0.5f * (road_right - road_left));
 }
 
-static v2 GetRoadDir(const Tilemap *map)
+struct RoadInfo
 {
-    v2 top_left  = { 0.0f,              (float)map->height };
-    v2 top_right = { (float)map->width, (float)map->height };
-    v2 bot_left  = { 0.0f,              0.0f };
-    v2 bot_right = { (float)map->width, 0.0f };
+    v2      top;
+    v2      bot;
+    v2      left;
+    v2      right;
+};
 
-    v2 center_top = { 
-        0.5f * (top_right.x + top_left.x),
-        0.5f * (top_right.y + top_left.y)
+static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
+{
+    RoadInfo info = {0};
+
+    v2    center_pos = { 0.5f * map->width, 0.5f * map->height };
+    float center_len = LenSq(center_pos);
+
+    v2 corner_top_left  = { map->width,                   0.0f };
+    v2 corner_top_right = { (float)map->width - 1,  0.0f };
+    v2 corner_bot_left  = { 0.0f,                   (float)map->height - 1 };
+    v2 corner_bot_right = { (float)map->width - 1,  (float)map->height - 1 };
+    //
+    v2 road_top_left    = center_pos;
+    v2 road_top_right   = center_pos;
+    v2 road_bot_left    = center_pos;
+    v2 road_bot_right   = center_pos;
+
+    float dist_top_left  = center_len; 
+    float dist_top_right = center_len; 
+    float dist_bot_left  = center_len; 
+    float dist_bot_right = center_len; 
+
+    for (int y = 0; y < map->height; ++y) {
+        for (int x = 0; x < map->width; ++x) {
+
+            if (TilemapGet(map, x, y) == TILE_ROAD) {
+                v2 tile_pos = { (float)x, (float)y };
+
+                if (DistSq(tile_pos, corner_top_left) < dist_top_left) {
+                    road_top_left  = tile_pos;
+                    dist_top_left  = DistSq(tile_pos, corner_top_left);
+                }
+
+                if (DistSq(tile_pos, corner_top_right) < dist_top_right) {
+                    road_top_right  = tile_pos;
+                    dist_top_right  = DistSq(tile_pos, corner_top_right);
+                }
+
+                if (DistSq(tile_pos, corner_bot_left) < dist_bot_left) {
+                    road_bot_left  = tile_pos;
+                    dist_bot_left  = DistSq(tile_pos, corner_bot_left);
+                }
+
+                if (DistSq(tile_pos, corner_bot_right) < dist_bot_right) {
+                    road_bot_right  = tile_pos;
+                    dist_bot_right  = DistSq(tile_pos, corner_bot_right);
+                }
+            }
+        }
+    }
+
+    v2 road_center_top = { 
+        0.5f * (road_top_left.x + road_top_right.x),
+        0.5f * (road_top_left.y + road_top_right.y)
     };
 
-    v2 center_bot = {
-        0.5f * (bot_right.x - bot_left.x),
-        0.5f * (bot_right.y - bot_left.y)
+    v2 road_center_bot = {
+        0.5f * (road_bot_left.x + road_bot_right.x),
+        0.5f * (road_bot_left.y + road_bot_right.y)
     };
 
-    v2 dir = { center_top.x - center_bot.x, center_bot.y - center_top.y };
+    info.top = road_center_top;
+    info.bot = road_center_bot;
 
-    return Norm(dir);
+    return info;
 }
 
 // ============================================ KLASSIFICATION ============================================== //
