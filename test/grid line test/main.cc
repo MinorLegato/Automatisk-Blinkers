@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    cv::VideoCapture cap("../testPics/test_video3.mp4");
+    cv::VideoCapture cap("../testPics/test_video2.mp4");
     //cv::VideoCapture cap(0);
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
@@ -83,9 +83,10 @@ int main(void)
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        RoadInfo info = TilemapGetRoadInfo(&map);
+        //RoadInfo info = TilemapGetRoadInfo(&map);
+        //TilemapDrawLine(&map, info.bot, info.top);
 
-        TilemapDrawLine(&map, info.bot, info.top);
+        TilemapMarkRoadCenter(&map);
 
         RoadState state = GetRoadState(&map);
         float     pos   = GetRoadPosition(&map);

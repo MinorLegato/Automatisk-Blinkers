@@ -496,7 +496,7 @@ static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
     v2    center_pos = { 0.5f * map->width, 0.5f * map->height };
     float center_len = LenSq(center_pos);
 
-    v2 corner_top_left  = { map->width,                   0.0f };
+    v2 corner_top_left  = { 0.0f,                   0.0f };
     v2 corner_top_right = { (float)map->width - 1,  0.0f };
     v2 corner_bot_left  = { 0.0f,                   (float)map->height - 1 };
     v2 corner_bot_right = { (float)map->width - 1,  (float)map->height - 1 };
@@ -554,6 +554,23 @@ static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
     info.bot = road_center_bot;
 
     return info;
+}
+
+static void TilemapMarkRoadCenter(Tilemap *map)
+{
+    for (int y = 0; y < map->height; ++y) {
+        int left    = 0.5f * map->width;
+        int right   = 0.5f * map->width;
+
+        for (int x = 0; x < map->width; ++x) {
+            if (TilemapGet(map, x, y) == TILE_ROAD) {
+                if (x < left)  left  = x;
+                if (x > right) right = x;
+            }
+        }
+
+        TilemapSet(map, 0.5f * (left + right), y, TILE_EDGE);
+    }
 }
 
 // ============================================ KLASSIFICATION ============================================== //
