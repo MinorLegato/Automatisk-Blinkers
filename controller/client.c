@@ -10,7 +10,7 @@
 
 #include "controller.c"
 
-static void controllerUpdate(Controller *c) {
+static void controllerUpdate(Controller *c, float t) {
     {
         c->thrust   = 0;
         c->steering = 0;
@@ -31,11 +31,11 @@ static void controllerUpdate(Controller *c) {
     }
 
     {
-        if (platform.keyboard.state[KEY_UP])   c->thrust   = INT8_MAX / 4;
-        if (platform.keyboard.state[KEY_DOWN]) c->thrust   = INT8_MIN / 4;
+        if (platform.keyboard.state[KEY_UP])   c->thrust =  127;
+        if (platform.keyboard.state[KEY_DOWN]) c->thrust = -127;
 
-        if (platform.keyboard.state[KEY_LEFT])  c->steering = INT8_MIN / 2;
-        if (platform.keyboard.state[KEY_RIGHT]) c->steering = INT8_MAX / 2;
+        if (platform.keyboard.state[KEY_LEFT])  c->steering = -127;
+        if (platform.keyboard.state[KEY_RIGHT]) c->steering = 127;
 
         if (platform.keyboard.pressed[KEY_Z]) c->blink--;
         if (platform.keyboard.pressed[KEY_X]) c->blink++;
@@ -62,7 +62,7 @@ int main(void) {
         if (platform.keyboard.pressed[KEY_ESCAPE])
             platform.close = true;
 
-        controllerUpdate(&controller);
+        controllerUpdate(&controller, t);
         NetClientSend(&client, &controller, sizeof controller);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
