@@ -20,8 +20,10 @@ int main(void)
 
     int dialate_count = 0;
 
+	InterPosList klassification;
+
     while (true) {
-        int key = cv::waitKey(16);
+        int key = cv::waitKey(100);
 
         if (key == 27) break;
         if (key == '1') dialate_count--;
@@ -33,7 +35,7 @@ int main(void)
 
         cap >> capture;
 
-        if (0) {
+        if (1) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
             clock_t start = clock();
@@ -85,9 +87,17 @@ int main(void)
 
         TilemapDrawRoadCenter(&map, 1);
 
-        RoadState state = GetRoadState(&map); // tyoe
+        RoadState state = GetRoadState(&map); // type
         float     pos   = GetRoadPosition(&map); //pos
 
+		InterPos typePos;
+		typePos.type = state;
+		typePos.pos = pos;
+		
+		klassification.push(typePos);
+		klassification.analyze();
+
+		printf("Blink %d\n" ,klassification.blink);
         printf("position: %.2f\n", pos);
 
         if (state & ROAD_UP)    puts("found up");
