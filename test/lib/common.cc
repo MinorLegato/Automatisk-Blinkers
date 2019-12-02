@@ -17,8 +17,6 @@
 
 #define ARRAY_COUNT(array)      (sizeof (array) / sizeof (array[0]))
 
-typedef unsigned char Pixel[3];
-
 static float RSqrt(float n)
 {
     return n == 0? 0 : sqrtf(n);
@@ -102,6 +100,8 @@ static const float kernel3_canny[3][3] = {
 
 // ===================================== IMAGE PROCESSING ON C-TYPES ================================================= //
 // NOTE(anton): Warning! these function assumes that dst has enough memory!
+
+typedef unsigned char Pixel[3];
 
 static void GrayscaleFromRgb(unsigned char *dst, const Pixel *src, int width, int height)
 {
@@ -234,7 +234,8 @@ enum
 {
     TILE_NONE,
     TILE_EDGE,
-    TILE_ROAD
+    TILE_ROAD,
+    TILE_CENTER
 };
 
 struct Tilemap
@@ -556,7 +557,7 @@ static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
     return info;
 }
 
-static void TilemapMarkRoadCenter(Tilemap *map)
+static void TilemapMarkRoadCenter(Tilemap *map, int mark = TILE_CENTER)
 {
     for (int y = 0; y < map->height; ++y) {
         int left    = 0.5f * map->width;
@@ -569,7 +570,13 @@ static void TilemapMarkRoadCenter(Tilemap *map)
             }
         }
 
-        TilemapSet(map, 0.5f * (left + right), y, TILE_EDGE);
+        int center = 0.5f * (left + right);
+
+        if (TilemapGet(map, center, y) == TILE_ROAD) {
+            TilemapSet(map, center - 1, y, TILE_CENTER);
+            TilemapSet(map, center + 0, y, TILE_CENTER);
+            TilemapSet(map, center + 1, y, TILE_CENTER);
+        }
     }
 }
 

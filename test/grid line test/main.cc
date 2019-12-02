@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    cv::VideoCapture cap("../testPics/test_video2.mp4");
+    cv::VideoCapture cap("../testPics/test_video1.mp4");
     //cv::VideoCapture cap(0);
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
@@ -38,8 +38,8 @@ int main(void)
 
             clock_t start = clock();
             
-            //cv::flip(capture, capture, 0);
-            //cv::flip(capture, capture, 1);
+            cv::flip(capture, capture, 0);
+            cv::flip(capture, capture, 1);
 
             clock_t end = clock();
 
@@ -49,7 +49,8 @@ int main(void)
         {
             clock_t start = clock();
 
-            MatToEdge(capture, 20, 80);
+            //MatToEdge(capture, 20, 80);
+            MatToEdge(capture);
 
             clock_t end = clock();
 
@@ -109,14 +110,13 @@ int main(void)
 
                     switch (tile) {
                         case TILE_EDGE:
-                            pixel[0] = 255;
-                            pixel[1] = 0;
-                            pixel[2] = 0;
+                            pixel = { 255, 0, 0 };
                             break;
                         case TILE_ROAD:
-                            pixel[0] = 0;
-                            pixel[1] = 255;
-                            pixel[2] = 0;
+                            pixel = { 0, 255, 0 };
+                            break;
+                        case TILE_CENTER:
+                            pixel = { 0, 100, 255 };
                             break;
                     }
                 }
