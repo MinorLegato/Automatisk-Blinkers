@@ -1,163 +1,135 @@
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <queue>
-#include <vector>
+#include "../lib/common.cc"
+#include "../lib/matToLines.cc"
 
+#include "time.h"
 
-struct IntersecPlacement {
-	int type;
-	float pos;
-};
+int main(void)
+{
+    cv::VideoCapture cap("../testPics/test_video1.mp4");
+    //cv::VideoCapture cap(0);
 
-struct KlassList {
-	static const int maxSize = 10;
-	static const int typeTypes = 10;
-	IntersecPlacement list[maxSize];
-	int index = 0;
-	int size = 0;
-	float pos = 0;
-	int type = 0;
-	int typeCheck[typeTypes];
-	float posSum = 0;
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
 
-	void push(IntersecPlacement newInput) {
-		//at size 10
-		if (size == maxSize) {
+    Tilemap map;
 
-			posSum -= list[index].pos;
-			if (typeCheck[list[index].type] > 0) {
-				typeCheck[list[index].type]--;
-			}
+    cv::namedWindow("capture", cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
 
-			list[index] = newInput;
-			posSum += list[index].pos;
+    cv::Mat capture;
 
-			typeCheck[list[index].type]++;
-			if (typeCheck[list[index].type] == 8) {
-				type = typeCheck[list[index].type];
-			}
-			index = (++index) % maxSize;
-		}
+    int dialate_count = 0;
 
-		// at size 9
-		else if (size == (maxSize-1)) {
+    while (true) {
+        int key = cv::waitKey(16);
 
-			list[index] = newInput;
-			posSum += newInput.pos;
-			typeCheck[newInput.type]++;
+        if (key == 27) break;
+        if (key == '1') dialate_count--;
+        if (key == '2') dialate_count++;
 
-			for (IntersecPlacement temp : list) {
-				posSum = posSum + temp.pos;
-				typeCheck[temp.type]++;
-				if (typeCheck[temp.type] == 8) {
-					type = temp.type;
-				}
-			}
-			pos = posSum / maxSize;
-			index++;
-			size++;
-		}
-		//size below 9
-		else {
+        dialate_count = CLAMP(dialate_count, 0, 10);
 
+        system("cls");
 
-			list[index] = newInput;
-			posSum += newInput.pos;
-			typeCheck[newInput.type]++;
+        cap >> capture;
 
-			index++;
-			size++;
-		}
-	}
+        if (0) {
+            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
+            clock_t start = clock();
+            
+            cv::flip(capture, capture, 0);
+            cv::flip(capture, capture, 1);
 
+            clock_t end = clock();
 
+            printf("flip ms: %d\n", (int)(end - start));
+        }
 
+        {
+            clock_t start = clock();
 
+            MatToEdge(capture);
 
+            clock_t end = clock();
 
-};
+            printf("MatToLines ms: %d\n", (int)(end - start));
+        }
 
+        TilemapResize(&map, capture.cols, capture.rows, 16);
+        TilemapClear(&map);
 
-#if 0
+        printf("%d %d\n", map.width, map.height);
 
-// 0 = no blink// 1 = right blink // -1 = left blink
-int Klass(std::vector<IntersecPlacement> & que) {
+        {
+            clock_t start = clock();
 
+            TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
 
-	//Determine true position and intersection type
-	float posSum = 0;
-	float posAvg = 0;
-	int type
-		int typeCheck[7];
-	for (IntersecPlacement temp : que) {
-		posSum = posSum + temp.pos;
-		if (++typeCheck[temp.type] == (int)que.size() / 0.8) {
-			type = temp.type;
-		}
-	}
-	posAvg = posSum / que.size();
+            for (int i = 0; i < dialate_count; ++i) {
+                TilemapDialate(&map);
+            }
 
+            clock_t end = clock();
 
+            printf("TilemapFill ms: %d\n", (int)(end - start));
+        }
 
-	/* Type       nr
-	*	no way		     0
-	*	single file way	 1
-	*	up-left          3
-	*	up-right         5
-	*	left-right       6
-	*   up-left-right    7
-	*   two-files        9
-	*/
-	switch (type) {
+        {
+            clock_t start = clock();
+            TilemapFloodFill(&map, map.width / 2, map.height - 1, TILE_ROAD);
+            clock_t end = clock();
 
-		case 0;
-			return 0;
-		case 1:
+            printf("FloodFill ms: %d\n", (int)(end - start));
+        }
 
-		case 3:
+        TilemapDrawRoadCenter(&map, 1);
 
+        RoadState state = GetRoadState(&map); // tyoe
+        float     pos   = GetRoadPosition(&map); //pos
 
-		case 4:
-		case 5:
-		case 6:
-			if (posAvg > 0) return 1;
-			else return -1;
-		case 7:
-			if (posAvg > 0.7) return 1;
-			else if (posAvg < -0.7) return -1;
-			else return
+        printf("position: %.2f\n", pos);
 
-		case 9:
-	}
+        if (state & ROAD_UP)    puts("found up");
+        if (state & ROAD_LEFT)  puts("found left");
+        if (state & ROAD_RIGHT) puts("found right");
+    
+        {
+            cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+
+            clock_t start = clock();
+
+            for (int y = 0; y < map.height; ++y) {
+                for (int x = 0; x < map.width; ++x) {
+                    int         tile    = TilemapGet(&map, x, y);
+                    cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
+
+                    switch (tile) {
+                        case TILE_EDGE:
+                            pixel = { 255, 0, 0 };
+                            break;
+                        case TILE_ROAD:
+                            pixel = { 0, 255, 0 };
+                            break;
+                        case TILE_CENTER:
+                            pixel = { 0, 100, 255 };
+                            break;
+                    }
+                }
+            }
+
+            clock_t end = clock();
+
+            printf("AsciiMap ms: %d\n", (int)(end - start));
+
+            cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
+            cv::imshow("tilemap", tilemap);
+        }
+
+        cv::resizeWindow("capture", capture.cols, capture.rows);
+        cv::imshow("capture", capture);
+    }
+
+    cv::waitKey(0);
 }
-
-#endif
-
-
-using namespace std;
-
-int main(void) {
-	int type;
-	float pos;
-	ifstream in("generatedPositionType1.txt");
-	if (in.is_open())
-	{
-		while( getline(in,a) ){
-
-
-		}
-
-		in.close();
-
-	}
-	
-	in.getline()
-
-	return 0;
-}
-
-
-
 
