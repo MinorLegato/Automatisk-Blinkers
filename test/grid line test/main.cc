@@ -49,7 +49,6 @@ int main(void)
         {
             clock_t start = clock();
 
-            //MatToEdge(capture, 20, 80);
             MatToEdge(capture);
 
             clock_t end = clock();
@@ -84,10 +83,7 @@ int main(void)
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        //RoadInfo info = TilemapGetRoadInfo(&map);
-        //TilemapDrawLine(&map, info.bot, info.top);
-
-        TilemapMarkRoadCenter(&map);
+        TilemapDrawRoadCenter(&map, 1);
 
         RoadState state = GetRoadState(&map);
         float     pos   = GetRoadPosition(&map);

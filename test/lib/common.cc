@@ -557,11 +557,13 @@ static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
     return info;
 }
 
-static void TilemapMarkRoadCenter(Tilemap *map, int mark = TILE_CENTER)
+static v2 TilemapDrawRoadCenter(Tilemap *map, int center_width = 0, int mark = TILE_CENTER)
 {
+    v2 dir = { 0.0f, 0.0f };
+
     for (int y = 0; y < map->height; ++y) {
-        int left    = 0.5f * map->width;
-        int right   = 0.5f * map->width;
+        int left  = 0.5f * map->width;
+        int right = 0.5f * map->width;
 
         for (int x = 0; x < map->width; ++x) {
             if (TilemapGet(map, x, y) == TILE_ROAD) {
@@ -573,11 +575,14 @@ static void TilemapMarkRoadCenter(Tilemap *map, int mark = TILE_CENTER)
         int center = 0.5f * (left + right);
 
         if (TilemapGet(map, center, y) == TILE_ROAD) {
-            TilemapSet(map, center - 1, y, TILE_CENTER);
-            TilemapSet(map, center + 0, y, TILE_CENTER);
-            TilemapSet(map, center + 1, y, TILE_CENTER);
+            for (int i = center - center_width; i <= center + center_width; ++i) {
+                if (TilemapGet(map, i, y) == TILE_ROAD)
+                    TilemapSet(map, i, y, TILE_CENTER);
+            }
         }
     }
+
+    return dir;
 }
 
 // ============================================ KLASSIFICATION ============================================== //
