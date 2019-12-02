@@ -53,6 +53,11 @@ static uint32_t CRC32Code(const void *data, size_t size)
 
 int main(void)
 {
-    //
+    { const uint8_t data[] = { 1,2,3,4,5,6,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
+    { const uint8_t data[] = { 1,1,3,4,5,6,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
+    { const uint8_t data[] = { 1,2,1,4,5,6,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
+    { const uint8_t data[] = { 1,2,3,3,4,6,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
+    { const uint8_t data[] = { 1,2,3,4,2,6,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
+    { const uint8_t data[] = { 1,2,3,2,1,1,7,8 }; printf("%u\n", CRC32Code(data, 8)); }
 }
 
