@@ -574,9 +574,12 @@ static v2 TilemapDrawRoadCenter(Tilemap *map, int center_width = 0, int mark = T
 
         int center = 0.5f * (left + right);
 
+        int start = center - center_width;
+        int end   = center + center_width;
+
         if (TilemapGet(map, center, y) == TILE_ROAD) {
-            for (int i = center - center_width; i <= center + center_width; ++i) {
-                if (TilemapGet(map, i, y) == TILE_ROAD)
+            for (int i = start; i <= end; ++i) {
+                if (TilemapGet(map, i, y) == TILE_ROAD) 
                     TilemapSet(map, i, y, TILE_CENTER);
             }
         }

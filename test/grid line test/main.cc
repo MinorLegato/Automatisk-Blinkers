@@ -33,7 +33,7 @@ int main(void)
 
         cap >> capture;
 
-        if (1) {
+        if (0) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
             clock_t start = clock();
