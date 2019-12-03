@@ -293,7 +293,7 @@ static void TilemapFillEdges(Tilemap *map, const unsigned char *data, int width,
     }
 }
 
-static void TilemapFloodFill(Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
+static void TilemapFloodFill(const Tilemap* dst, Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
 {
     struct Point { int x, y; };
 
@@ -310,7 +310,7 @@ static void TilemapFloodFill(Tilemap *map, int start_x, int start_y, int marker 
     while (point_count) {
         Point current = point_stack[--point_count];
 
-        map->tiles[current.y * map->width + current.x] = marker;
+        dst->tiles[current.y * map->width + current.x] = marker;
 
         const Point ns[4] = {
             current.x,     current.y - 1,
@@ -324,7 +324,7 @@ static void TilemapFloodFill(Tilemap *map, int start_x, int start_y, int marker 
 
             if (n.x < 0 || n.x >= map->width)  continue;
             if (n.y < 0 || n.y >= map->height) continue;
-            if (map->tiles[n.y * map->width + n.x] == marker)     continue;
+            if (dst->tiles[n.y * map->width + n.x] == marker)     continue;
             if (start_tile != map->tiles[n.y * map->width + n.x]) continue;
 
             point_stack[point_count++] = n;
@@ -435,6 +435,63 @@ static int GetRoadHeight(const Tilemap *map)
     return 0;
 }
 
+static float GetRoadPosition(const Tilemap *map)
+{
+    float center     = 0.5f * map->width;
+    int   road_left  = 0;
+    int   road_right = map->width - 1;
+
+    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
+        road_left++;
+    }
+
+    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
+        road_right--;
+    }
+
+    float road_center = 0.5f * (road_right + road_left);
+
+    return (center - road_center) / (0.5f * (road_right - road_left));
+}
+
+// draw the center of the road into the 'dst' tilemap.
+// returns a float between 0.0f - 1.0f, that reprecents the precentage of the center that was not part of the road.
+static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_width = 0, int mark = TILE_CENTER)
+{
+    int tiles_total = 0;
+    int tiles_edge  = 0;
+
+    int height = GetRoadHeight(map);
+
+    for (int y = height; y < map->height; ++y) {
+        int left  = 0.5f * map->width;
+        int right = 0.5f * map->width;
+
+        for (int x = 0; x < map->width; ++x) {
+            if (TilemapGet(map, x, y) == TILE_ROAD) {
+                if (x < left)  left  = x;
+                if (x > right) right = x;
+            }
+        }
+
+        int center = 0.5f * (left + right);
+
+        int start = center - center_width;
+        int end   = center + center_width;
+
+        for (int i = start; i <= end; ++i) {
+            tiles_total++;
+
+            if (TilemapGet(map, i, y) == TILE_EDGE)
+                tiles_edge++;
+
+            TilemapSet(dst, i, y, TILE_CENTER);
+        }
+    }
+
+    return tiles_total? (float)tiles_edge / (float)tiles_total : 0.0f;
+}
+
 static RoadState GetRoadState(const Tilemap *map)
 {
     RoadState result = 0;
@@ -463,130 +520,6 @@ static RoadState GetRoadState(const Tilemap *map)
     return result;
 }
 
-static float GetRoadPosition(const Tilemap *map)
-{
-    float center     = 0.5f * map->width;
-    int   road_left  = 0;
-    int   road_right = map->width - 1;
-
-    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
-        road_left++;
-    }
-
-    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
-        road_right--;
-    }
-
-    float road_center = 0.5f * (road_right + road_left);
-
-    return (center - road_center) / (0.5f * (road_right - road_left));
-}
-
-struct RoadInfo
-{
-    v2      top;
-    v2      bot;
-    v2      left;
-    v2      right;
-};
-
-static RoadInfo TilemapGetRoadInfo(const Tilemap *map)
-{
-    RoadInfo info = {0};
-
-    v2    center_pos = { 0.5f * map->width, 0.5f * map->height };
-    float center_len = LenSq(center_pos);
-
-    v2 corner_top_left  = { 0.0f,                   0.0f };
-    v2 corner_top_right = { (float)map->width - 1,  0.0f };
-    v2 corner_bot_left  = { 0.0f,                   (float)map->height - 1 };
-    v2 corner_bot_right = { (float)map->width - 1,  (float)map->height - 1 };
-    //
-    v2 road_top_left    = center_pos;
-    v2 road_top_right   = center_pos;
-    v2 road_bot_left    = center_pos;
-    v2 road_bot_right   = center_pos;
-
-    float dist_top_left  = center_len; 
-    float dist_top_right = center_len; 
-    float dist_bot_left  = center_len; 
-    float dist_bot_right = center_len; 
-
-    for (int y = 0; y < map->height; ++y) {
-        for (int x = 0; x < map->width; ++x) {
-
-            if (TilemapGet(map, x, y) == TILE_ROAD) {
-                v2 tile_pos = { (float)x, (float)y };
-
-                if (DistSq(tile_pos, corner_top_left) < dist_top_left) {
-                    road_top_left  = tile_pos;
-                    dist_top_left  = DistSq(tile_pos, corner_top_left);
-                }
-
-                if (DistSq(tile_pos, corner_top_right) < dist_top_right) {
-                    road_top_right  = tile_pos;
-                    dist_top_right  = DistSq(tile_pos, corner_top_right);
-                }
-
-                if (DistSq(tile_pos, corner_bot_left) < dist_bot_left) {
-                    road_bot_left  = tile_pos;
-                    dist_bot_left  = DistSq(tile_pos, corner_bot_left);
-                }
-
-                if (DistSq(tile_pos, corner_bot_right) < dist_bot_right) {
-                    road_bot_right  = tile_pos;
-                    dist_bot_right  = DistSq(tile_pos, corner_bot_right);
-                }
-            }
-        }
-    }
-
-    v2 road_center_top = { 
-        0.5f * (road_top_left.x + road_top_right.x),
-        0.5f * (road_top_left.y + road_top_right.y)
-    };
-
-    v2 road_center_bot = {
-        0.5f * (road_bot_left.x + road_bot_right.x),
-        0.5f * (road_bot_left.y + road_bot_right.y)
-    };
-
-    info.top = road_center_top;
-    info.bot = road_center_bot;
-
-    return info;
-}
-
-static v2 TilemapDrawRoadCenter(Tilemap *map, int center_width = 0, int mark = TILE_CENTER)
-{
-    v2 dir = { 0.0f, 0.0f };
-
-    for (int y = 0; y < map->height; ++y) {
-        int left  = 0.5f * map->width;
-        int right = 0.5f * map->width;
-
-        for (int x = 0; x < map->width; ++x) {
-            if (TilemapGet(map, x, y) == TILE_ROAD) {
-                if (x < left)  left  = x;
-                if (x > right) right = x;
-            }
-        }
-
-        int center = 0.5f * (left + right);
-
-        int start = center - center_width;
-        int end   = center + center_width;
-
-        if (TilemapGet(map, center, y) == TILE_ROAD) {
-            for (int i = start; i <= end; ++i) {
-                if (TilemapGet(map, i, y) == TILE_ROAD) 
-                    TilemapSet(map, i, y, TILE_CENTER);
-            }
-        }
-    }
-
-    return dir;
-}
 
 // ============================================ KLASSIFICATION ============================================== //
 

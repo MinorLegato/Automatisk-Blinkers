@@ -5,6 +5,77 @@
 
 int main(void)
 {
+    cv::Mat capture = cv::imread("../testPics/lanepaper.jpg");
+
+#if 1
+    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+#endif
+
+    Tilemap map = {0};
+
+    cv::namedWindow("capture", cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+
+    MatToEdge(capture);
+
+    TilemapResize(&map, capture.cols, capture.rows, 8);
+
+    TilemapClear(&map);
+
+    printf("%d %d\n", map.width, map.height);
+
+    TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
+
+    TilemapFloodFill(&map, &map, map.width / 2, map.height - 1, TILE_ROAD);
+
+    float per = TilemapDrawRoadCenter(&map, &map, 1);
+    printf("center edge per: %f\n", per);
+
+    RoadState state = GetRoadState(&map);
+
+    if (per > 0.2f)
+        state |= ROAD_TWO_LANES;
+
+    float     pos   = GetRoadPosition(&map);
+
+    printf("position: %.2f\n", pos);
+
+    if (state & ROAD_UP)        puts("found up");
+    if (state & ROAD_LEFT)      puts("found left");
+    if (state & ROAD_RIGHT)     puts("found right");
+    if (state & ROAD_TWO_LANES) puts("found two lanes");
+
+    {
+        cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+
+        for (int y = 0; y < map.height; ++y) {
+            for (int x = 0; x < map.width; ++x) {
+                int         tile    = TilemapGet(&map, x, y);
+                cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
+
+                switch (tile) {
+                    case TILE_EDGE:     pixel = { 255, 0, 0 };      break;
+                    case TILE_ROAD:     pixel = { 0, 255, 0 };      break;
+                    case TILE_CENTER:   pixel = { 0, 100, 255 };    break;
+                }
+            }
+        }
+
+        cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
+        cv::imshow("tilemap", tilemap);
+    }
+
+    cv::resizeWindow("capture", capture.cols, capture.rows);
+    cv::imshow("capture", capture);
+
+    cv::waitKey(0);
+}
+
+#if 0
+int main(void)
+{
     cv::VideoCapture cap("../testPics/test_video1.mp4");
     //cv::VideoCapture cap(0);
 
@@ -33,7 +104,7 @@ int main(void)
 
         cap >> capture;
 
-        if (0) {
+        if (1) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
             clock_t start = clock();
@@ -132,4 +203,4 @@ int main(void)
 
     cv::waitKey(0);
 }
-
+#endif
