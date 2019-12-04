@@ -1,12 +1,14 @@
 #include "../lib/common.cc"
 #include "../lib/matToLines.cc"
 
+#include <iostream>
+
 #include "time.h"
 
 int main(void)
 {
-    cv::VideoCapture cap("../testPics/test_video1.mp4");
-    //cv::VideoCapture cap(0);
+   /// cv::VideoCapture cap("../testPics/test_video1.mp4");
+    cv::VideoCapture cap(0);
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
@@ -35,7 +37,7 @@ int main(void)
 
         cap >> capture;
 
-        if (1) {
+        if (0) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
             clock_t start = clock();
@@ -45,7 +47,7 @@ int main(void)
 
             clock_t end = clock();
 
-            printf("flip ms: %d\n", (int)(end - start));
+            //printf("flip ms: %d\n", (int)(end - start));
         }
 
         {
@@ -55,13 +57,13 @@ int main(void)
 
             clock_t end = clock();
 
-            printf("MatToLines ms: %d\n", (int)(end - start));
+          //  printf("MatToLines ms: %d\n", (int)(end - start));
         }
 
         TilemapResize(&map, capture.cols, capture.rows, 16);
         TilemapClear(&map);
 
-        printf("%d %d\n", map.width, map.height);
+      	// printf("%d %d\n", map.width, map.height);
 
         {
             clock_t start = clock();
@@ -74,21 +76,21 @@ int main(void)
 
             clock_t end = clock();
 
-            printf("TilemapFill ms: %d\n", (int)(end - start));
+            //printf("TilemapFill ms: %d\n", (int)(end - start));
         }
-
+    
         {
             clock_t start = clock();
-            TilemapFloodFill(&map, map.width / 2, map.height - 1, TILE_ROAD);
+            TilemapFloodFill(&map,&map, map.width / 2, map.height - 1, TILE_ROAD);
             clock_t end = clock();
 
-            printf("FloodFill ms: %d\n", (int)(end - start));
+           // printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        TilemapDrawRoadCenter(&map, 1);
+        TilemapDrawRoadCenter(&map, &map,1);
 
         RoadState state = GetRoadState(&map); // type
-        float     pos   = GetRoadPosition(&map); //pos
+        float     pos   = GetRoadPosition(&map,state); //pos
 
 		InterPos typePos;
 		typePos.type = state;
@@ -97,8 +99,16 @@ int main(void)
 		klassification.push(typePos);
 		klassification.analyze();
 
-		printf("Blink %d\n" ,klassification.blink);
+		printf("klass:  Blink %d\n" ,klassification.blink);
+		printf("klass: PosAvg %.2f\n" ,klassification.pos);
+        std::cout << klassification.pos << "\n";
+        printf("klass: type %d\n", klassification.type);
+		printf("klass:  PosDifAvg %.2f\n" ,klassification.posDifAvg);
+
+
         printf("position: %.2f\n", pos);
+        printf("position: %d\n", typePos.type);
+        
 
         if (state & ROAD_UP)    puts("found up");
         if (state & ROAD_LEFT)  puts("found left");
@@ -130,14 +140,14 @@ int main(void)
 
             clock_t end = clock();
 
-            printf("AsciiMap ms: %d\n", (int)(end - start));
+          //  printf("AsciiMap ms: %d\n", (int)(end - start));
 
-            cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
+            cv::resizeWindow("tilemap", map.width * map.cell_size*0.5, map.height * map.cell_size*0.5);
             cv::imshow("tilemap", tilemap);
         }
 
         cv::resizeWindow("capture", capture.cols, capture.rows);
-        cv::imshow("capture", capture);
+       // cv::imshow("capture", capture);
     }
 
     cv::waitKey(0);
