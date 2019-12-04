@@ -1,13 +1,13 @@
 #include "../lib/common.cc"
 #include "../lib/matToLines.cc"
 
-#include "time.h"
+#include <time.h>
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/4crossingtest.png");
+    cv::Mat capture = cv::imread("../testPics/4crosspaper.jpg");
 
-#if 0
+#if 1
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });

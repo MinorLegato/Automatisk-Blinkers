@@ -293,7 +293,7 @@ static void TilemapFillEdges(Tilemap *map, const unsigned char *data, int width,
     }
 }
 
-static void TilemapFloodFill(const Tilemap* dst, Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
+static void TilemapFloodFill(Tilemap* dst, const Tilemap *map, int start_x, int start_y, int marker = TILE_ROAD)
 {
     struct Point { int x, y; };
 
