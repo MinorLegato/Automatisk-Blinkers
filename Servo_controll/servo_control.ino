@@ -40,24 +40,20 @@ void setup()
     ////////////////////////////////////////
 
 
-     
     while (CAN_OK != CAN.begin(CAN_500KBPS))              // init can bus : baudrate = 500k
     {
         SERIAL.println("CAN BUS Shield init fail");
         SERIAL.println("Init CAN BUS Shield again");
         delay(100);
     }
+
     SERIAL.println("CAN BUS Shield init ok!");
 }
-
-
-
 
 void loop()
 {
     signed char len = 0;
     signed char buf[8];
-
 
     if(CAN_MSGAVAIL == CAN.checkReceive())            // check if data coming
     {
@@ -69,18 +65,15 @@ void loop()
         SERIAL.println("get data from ID: 0x");
         SERIAL.println(canId, HEX);
 
-
-
-
         ///////////////////////////////
         can = buf[1];                          //gets the secund value of the can-buss, witch is the direktion
         dir = map(can, -128, 127, 20, 80);     // scale it to use it with the servo (value between 0 and 180)
+
         SERIAL.print(can);
         SERIAL.println();
         SERIAL.print(dir);
         SERIAL.println();
         SERIAL.print(temp);
-
 
         if(temp > dir)
         {
@@ -93,10 +86,8 @@ void loop()
           temp++;
           myservo.write(temp); 
         }
-
         
         delay(15);
-
 
         /*
 

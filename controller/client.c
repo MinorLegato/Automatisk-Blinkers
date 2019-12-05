@@ -10,7 +10,7 @@
 
 #include "controller.c"
 
-static void controllerUpdate(Controller *c, float t) {
+static void ControllerUpdate(Controller *c, float t) {
     {
         c->thrust   = 0;
         c->steering = 0;
@@ -46,6 +46,9 @@ static void controllerUpdate(Controller *c, float t) {
 
 int main(void) {
     PlatformInit("CLIENT!", 800, 600, 8);
+
+    platform.mouse.mode = MOUSE_DISABLED;
+
     RenderInit();
     NetInit();
 
@@ -62,7 +65,7 @@ int main(void) {
         if (platform.keyboard.pressed[KEY_ESCAPE])
             platform.close = true;
 
-        controllerUpdate(&controller, t);
+        ControllerUpdate(&controller, t);
         NetClientSend(&client, &controller, sizeof controller);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
