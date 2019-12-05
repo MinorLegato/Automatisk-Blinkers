@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <thread>
 
+#include <iostream>
+
 #define ARRAY_COUNT(array) (sizeof (array) / sizeof (array[0]))
 
 struct Controller
@@ -23,20 +25,20 @@ static void ControllerThread(void)
 	Can 		can         = {0};
 	Server 		server      = {0};
 
-    puts("can");
+    //puts("can");
 	canInit(&can);
-    puts("net");
+    //puts("net");
 	netServerInit(&server, 8888);
 
 	while (1) {
-        puts("net recv");
+        //puts("net recv");
 		netServerRecv(&server, &controller, sizeof (Controller));
 
-		printf("t %d\n", controller.thrust);
-		printf("s %d\n", controller.steering);
-		printf("b %d\n", controller.blink);
+		//printf("t %d\n", controller.thrust);
+		//printf("s %d\n", controller.steering);
+		//printf("b %d\n", controller.blink);
 
-        puts("can send");
+        //puts("can send");
 		canSend(&can, 0x7DF, &controller, sizeof (Controller));
 	}
 }
@@ -54,6 +56,7 @@ int main(void)
     Tilemap map;
 
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+    cv::namedWindow("capture", cv::WINDOW_NORMAL);
 
     cv::Mat capture;
 
@@ -62,7 +65,7 @@ int main(void)
 	InterPosList klassification;
 
     while (true) {
-        int key = cv::waitKey(100);
+        int key = cv::waitKey(16);
 
         if (key == 27) break;
         if (key == '1') dialate_count--;
@@ -93,7 +96,9 @@ int main(void)
             TilemapFloodFill(&map,&map, map.width / 2, map.height - 1, TILE_ROAD);
         }
 
-        TilemapDrawRoadCenter(&map, &map,1);
+        {
+            TilemapDrawRoadCenter(&map, &map,1);
+        }
 
         RoadState state = GetRoadState(&map); // type
         float     pos   = GetRoadPosition(&map,state); //pos
@@ -102,8 +107,10 @@ int main(void)
 		typePos.type = state;
 		typePos.pos = pos;
 		
-		klassification.push(typePos);
-		klassification.analyze();
+        {
+            klassification.push(typePos);
+            klassification.analyze();
+        }
 
 		//printf("klass:  Blink %d\n" ,klassification.blink);
 		//printf("klass: PosAvg %.2f\n" ,klassification.pos);
@@ -144,16 +151,12 @@ int main(void)
                 }
             }
 
-            clock_t end = clock();
-
-          //  printf("AsciiMap ms: %d\n", (int)(end - start));
-
-            cv::resizeWindow("tilemap", map.width * map.cell_size*0.5, map.height * map.cell_size*0.5);
+            cv::resizeWindow("tilemap", 0.5f * map.width * map.cell_size, 0.5f * map.height * map.cell_size);
             cv::imshow("tilemap", tilemap);
         }
 
-        //cv::resizeWindow("capture", capture.cols, capture.rows);
-       // cv::imshow("capture", capture);
+        cv::resizeWindow("capture", 0.5f * capture.cols, 0.5f * capture.rows);
+        cv::imshow("capture", capture);
     }
 
 	return 0;
