@@ -3,7 +3,8 @@
 
 #include <time.h>
 
-#if 0
+#if 1
+
 int main(void)
 {
     cv::Mat capture = cv::imread("../testPics/highwaytest.png");
