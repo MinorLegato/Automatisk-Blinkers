@@ -3,13 +3,13 @@
 
 #include <time.h>
 
-#if 0
+#if 1
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/3crossingtest1.png");
+    cv::Mat capture = cv::imread("../testPics/real3.jpg");
 
-#if 0
+#if 1
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
@@ -22,7 +22,7 @@ int main(void)
 
     MatToEdge(capture);
 
-    TilemapResize(&map, capture.cols, capture.rows, 16);
+    TilemapResize(&map, capture.cols, capture.rows, 8);
 
     TilemapClear(&map);
 
@@ -34,7 +34,7 @@ int main(void)
 
     RoadState state = TilemapGetRoadState(&map);
 
-    float per = TilemapDrawRoadCenter(&map, &map, 1);
+    float per = TilemapDrawRoadCenter(&map, &map);
 
     printf("center edge per: %f\n", per);
 
@@ -59,9 +59,10 @@ int main(void)
                 cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                 switch (tile) {
-                    case TILE_EDGE:     pixel = { 255, 0, 0 };      break;
-                    case TILE_ROAD:     pixel = { 0, 255, 0 };      break;
-                    case TILE_CENTER:   pixel = { 0, 100, 255 };    break;
+                    case TILE_EDGE:         pixel = { 255, 0, 0 };      break;
+                    case TILE_ROAD:         pixel = { 0, 255, 0 };      break;
+                    case TILE_CENTER:       pixel = { 0, 100, 255 };    break;
+                    case TILE_LANE_CENTER:  pixel = { 150, 100, 50 };    break;
                 }
             }
         }
