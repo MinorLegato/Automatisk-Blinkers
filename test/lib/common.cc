@@ -229,13 +229,13 @@ static void GrayscaleApplyKernel(Grayscale* dst, const Grayscale *src, const flo
 // ============================================ LINE GRID ============================================== //
 
 typedef int TileType;
-
 enum
 {
     TILE_NONE,
     TILE_EDGE,
     TILE_ROAD,
-    TILE_CENTER
+    TILE_CENTER,
+    TILE_LANE_CENTER
 };
 
 struct Tilemap
@@ -463,7 +463,7 @@ static float TilemapGetRoadPosition(const Tilemap *map, RoadState state)
 
 // draw the center of the road into the 'dst' tilemap.
 // returns a float between 0.0f - 1.0f, that reprecents the precentage of the center that was not part of the road.
-static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_width = 0, int mark = TILE_CENTER)
+static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_width = 0)
 {
     int tiles_total = 0;
     int tiles_edge  = 0;
@@ -481,7 +481,12 @@ static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_
             }
         }
 
-        int center = 0.5f * (left + right);
+        int center       = 0.5f * (left  + right);
+        int left_center  = 0.5f * (left  + center);
+        int right_center = 0.5f * (right + center);
+
+        TilemapSet(dst, left_center,  y, TILE_LANE_CENTER);
+        TilemapSet(dst, right_center, y, TILE_LANE_CENTER);
 
         int start = center - center_width;
         int end   = center + center_width;
@@ -546,88 +551,6 @@ static RoadState TilemapGetRoadState(const Tilemap *map)
     if (TilemapIsRoadHorizontalAt(map, ex))   result |= ROAD_RIGHT;
     if (TilemapIsRoadVerticalAt(map, sy + 1)) result |= ROAD_UP;
 
-    /*
-    int up_count    = 0;
-    int left_count  = 0;
-    int right_count = 0;
-
-    for (int x = 0; x < 0.5f * map->width; ++x)
-        if (TilemapIsRoadHorizontalAt(map, x))
-            left_count++;
-
-    for (int x = map->width - 1; x > 0.5f * map->width; --x)
-        if (TilemapIsRoadHorizontalAt(map, x))
-            right_count++;
-
-    for (int y = sy; y < ey; ++y)
-        if (TilemapIsRoadVerticalAt(map, y))
-            up_count++;
-
-    if (up_count    > 2) result |= ROAD_UP;
-    if (left_count  > 2) result |= ROAD_LEFT;
-    if (right_count > 2) result |= ROAD_RIGHT;
-    */
-
-#if 0
-    for (int y = sy; y < ey; ++y)
-        if (TilemapGet(map, sx, y) == TILE_ROAD)
-            result |= ROAD_LEFT;
-
-    for (int y = sy; y < ey; ++y)
-        if (TilemapGet(map, ex, y) == TILE_ROAD)
-            result |= ROAD_RIGHT;
-#endif 
-
-    if ((result & ROAD_UP) == result) {
-        //
-    }
-
     return result;
 }
-
-#if 0
-static RoadState GetRoadState(const Tilemap *map)
-{
-    RoadState result = 0;
-
-    int sy  = GetRoadHeight(map);
-    int ey  = sy + 3;
-
-    int up_count    = 0;
-    int left_count  = 0;
-    int right_count = 0;
-
-    for (int x = 0; x < 0.5f * map->width; ++x)
-        if (TilemapIsRoadHorizontalAt(map, x))
-            left_count++;
-
-    for (int x = map->width - 1; x > 0.5f * map->width; --x)
-        if (TilemapIsRoadHorizontalAt(map, x))
-            right_count++;
-
-    for (int y = sy; y < ey; ++y)
-        if (TilemapIsRoadVerticalAt(map, y))
-            up_count++;
-
-    if (up_count    > 2) result |= ROAD_UP;
-    if (left_count  > 2) result |= ROAD_LEFT;
-    if (right_count > 2) result |= ROAD_RIGHT;
-
-#if 0
-    for (int y = sy; y < ey; ++y)
-        if (TilemapGet(map, sx, y) == TILE_ROAD)
-            result |= ROAD_LEFT;
-
-    for (int y = sy; y < ey; ++y)
-        if (TilemapGet(map, ex, y) == TILE_ROAD)
-            result |= ROAD_RIGHT;
-#endif 
-
-    if ((result & ROAD_UP) == result) {
-        //
-    }
-
-    return result;
-}
-#endif
 

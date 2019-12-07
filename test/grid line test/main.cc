@@ -3,13 +3,13 @@
 
 #include <time.h>
 
-#if 1
+#if 0
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/4crosspaper2.jpg");
+    cv::Mat capture = cv::imread("../testPics/3crossingtest1.png");
 
-#if 1
+#if 0
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
@@ -80,8 +80,8 @@ int main(void)
 
 int main(void)
 {
-    //cv::VideoCapture cap("../testPics/test_video1.mp4");
-    cv::VideoCapture cap(0);
+    cv::VideoCapture cap("../testPics/test_video1.mp4");
+    //cv::VideoCapture cap(0);
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
@@ -108,7 +108,7 @@ int main(void)
 
         cap >> capture;
 
-        if (0) {
+        if (1) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 
             clock_t start = clock();
@@ -158,10 +158,10 @@ int main(void)
             printf("FloodFill ms: %d\n", (int)(end - start));
         }
 
-        TilemapDrawRoadCenter(&map, &map, 1);
+        TilemapDrawRoadCenter(&map, &map, 0);
 
-        RoadState state = GetRoadState(&map);
-        float     pos   = GetRoadPosition(&map, state);
+        RoadState state = TilemapGetRoadState(&map);
+        float     pos   = TilemapGetRoadPosition(&map, state);
 
         printf("position: %.2f\n", pos);
 
@@ -189,6 +189,10 @@ int main(void)
                         case TILE_CENTER:
                             pixel = { 0, 100, 255 };
                             break;
+                        case TILE_LANE_CENTER:
+                            pixel = { 150, 70, 50 };
+                            break;
+
                     }
                 }
             }
