@@ -7,9 +7,9 @@
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/highwaytest.png");
+    cv::Mat capture = cv::imread("../testPics/4crosspaper2.jpg");
 
-#if 0
+#if 1
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
@@ -32,15 +32,16 @@ int main(void)
 
     TilemapFloodFill(&map, &map, map.width / 2, map.height - 1, TILE_ROAD);
 
-    RoadState state = GetRoadState(&map);
+    RoadState state = TilemapGetRoadState(&map);
 
     float per = TilemapDrawRoadCenter(&map, &map, 1);
+
     printf("center edge per: %f\n", per);
 
     if (per > 0.2f)
         state |= ROAD_TWO_LANES;
 
-    float pos = GetRoadPosition(&map, state);
+    float pos = TilemapGetRoadPosition(&map, state);
 
     printf("position: %.2f\n", pos);
 
