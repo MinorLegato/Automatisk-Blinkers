@@ -17,7 +17,7 @@ namespace ImageProc
 
     Tilemap                 map;
 
-    // funcs:
+    // functions:
     void Init   (void);
     void Update (const cv::Mat &frame);
     void Render (void);
@@ -27,10 +27,10 @@ void ImageProc::Init(void)
 {
     hough_lines.reserve(1028 * 512);
 
-    cv::namedWindow("frame",        cv::WINDOW_NORMAL);
-    cv::namedWindow("tilemap",      cv::WINDOW_NORMAL);
-    cv::namedWindow("hough_lines",  cv::WINDOW_NORMAL);
-    cv::namedWindow("and",          cv::WINDOW_NORMAL);
+    cv::namedWindow("edge", cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+    cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
+    cv::namedWindow("and", cv::WINDOW_NORMAL);
 }
 
 void ImageProc::Update(const cv::Mat &frame)
@@ -77,7 +77,7 @@ void ImageProc::Update(const cv::Mat &frame)
     {
         mat_lines = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
 
-        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 40);
+        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 100);
 
         for (int i = 0; i < hough_lines.size(); ++i) {
             auto line = hough_lines[i];
@@ -113,11 +113,11 @@ void ImageProc::Render(void)
 {
     cv::imshow("hough_lines",   mat_lines);
     cv::imshow("tilemap",       mat_tiles);
-    cv::imshow("frame",         mat_edge);
+    cv::imshow("edge",          mat_edge);
     cv::imshow("and",           mat_and);
 }
 
-#if 0
+#if 1
 
 int main(void)
 {
@@ -132,6 +132,9 @@ int main(void)
     ImageProc::Init();
     ImageProc::Update(frame);
     ImageProc::Render();
+
+    cv::namedWindow("frame", cv::WINDOW_NORMAL);
+    cv::imshow("frame", frame);
 
     cv::waitKey(0);
 }
@@ -176,6 +179,8 @@ int main(void)
         }
 
         ImageProc::Render();
+
+        cv::imshow("frame", frame);
     }
 }
 
