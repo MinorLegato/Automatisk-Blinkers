@@ -8,8 +8,6 @@
 #include <cmath>
 #include <algorithm>
 
-#define RANGE(stl_container)    std::begin(stl_container), std::end(stl_container)
-
 #define CLAMP_MIN(val, lo)      ((val) < (lo)? (lo) : (val))
 #define CLAMP_MAX(val, hi)      ((val) > (hi)? (hi) : (val))
 

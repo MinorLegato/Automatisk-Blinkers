@@ -5,76 +5,133 @@
 
 #include <vector>
 
-#if 0
-
-int main(void)
+namespace ImageProc
 {
-    cv::Mat capture = cv::imread("../testPics/real1.jpg");
+    // data:
+    std::vector<cv::Vec4i>  hough_lines;
 
-#if 1
-    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-#endif
+    cv::Mat                 mat_edge;
+    cv::Mat                 mat_lines;
+    cv::Mat                 mat_and;
+    cv::Mat                 mat_tiles;
 
-    Tilemap map = {0};
+    Tilemap                 map;
 
-    cv::namedWindow("capture", cv::WINDOW_NORMAL);
-    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+    // funcs:
+    void Init   (void);
+    void Update (const cv::Mat &frame);
+    void Render (void);
+}
 
-    MatToEdge(capture);
+void ImageProc::Init(void)
+{
+    hough_lines.reserve(1028 * 512);
 
-    TilemapResize(&map, capture.cols, capture.rows, 8);
+    cv::namedWindow("frame",        cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap",      cv::WINDOW_NORMAL);
+    cv::namedWindow("hough_lines",  cv::WINDOW_NORMAL);
+    cv::namedWindow("and",          cv::WINDOW_NORMAL);
+}
 
+void ImageProc::Update(const cv::Mat &frame)
+{
+    MatToEdge(mat_edge, frame);
+
+    TilemapResize(&map, mat_edge.cols, mat_edge.rows, 8);
     TilemapClear(&map);
 
-    printf("%d %d\n", map.width, map.height);
+    TilemapFillEdges(&map, mat_edge.ptr(), mat_edge.cols, mat_edge.rows);
 
-    TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
+    TilemapFloodFillRoad(&map, &map, map.width / 2, map.height - 1);
 
-    TilemapFloodFill(&map, &map, map.width / 2, map.height - 1, TILE_ROAD);
-
-    RoadState state = TilemapGetRoadState(&map);
-
-    float per = TilemapDrawRoadCenter(&map, &map);
-
-    printf("center edge per: %f\n", per);
-
-    if (per > 0.2f)
-        state |= ROAD_TWO_LANES;
-
-    float pos = TilemapGetRoadPosition(&map, state);
-
-    printf("position: %.2f\n", pos);
-
-    if (state & ROAD_UP)        puts("found up");
-    if (state & ROAD_LEFT)      puts("found left");
-    if (state & ROAD_RIGHT)     puts("found right");
-    if (state & ROAD_TWO_LANES) puts("found two lanes");
-
+    // road edge masking
     {
-        cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+        mat_and = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC1);
 
         for (int y = 0; y < map.height; ++y) {
             for (int x = 0; x < map.width; ++x) {
-                int         tile    = TilemapGet(&map, x, y);
-                cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
+                int tile = TilemapGet(&map, x, y);
 
-                switch (tile) {
-                    case TILE_EDGE:         pixel = { 255, 0, 0 };      break;
-                    case TILE_ROAD:         pixel = { 0, 255, 0 };      break;
-                    case TILE_CENTER:       pixel = { 0, 100, 255 };    break;
-                    case TILE_LANE_CENTER:  pixel = { 150, 100, 50 };    break;
+                if (tile == TILE_ROAD_EDGE) {
+                    cv::Point a = { (int)(map.cell_size * x), (int)(map.cell_size * y) };
+                    cv::Point b = a + cv::Point(map.cell_size, map.cell_size);
+
+                    cv::rectangle(mat_and, a, b, cv::Scalar(255), -1);
                 }
             }
         }
 
-        cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
-        cv::imshow("tilemap", tilemap);
+        cv::bitwise_and(mat_edge, mat_and, mat_edge);
     }
 
-    cv::resizeWindow("capture", capture.cols, capture.rows);
-    cv::imshow("capture", capture);
+    TilemapDrawRoadCenter(&map, &map, 0);
+
+    RoadState state = TilemapGetRoadState(&map);
+    float     pos   = TilemapGetRoadPosition(&map, state);
+
+    if (state & ROAD_UP)    puts("found up");
+    if (state & ROAD_LEFT)  puts("found left");
+    if (state & ROAD_RIGHT) puts("found right");
+
+    // get hough_lines:
+    {
+        mat_lines = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
+
+        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 40);
+
+        for (int i = 0; i < hough_lines.size(); ++i) {
+            auto line = hough_lines[i];
+
+            cv::Point a = { line[0], line[1] };
+            cv::Point b = { line[2], line[3] };
+
+            cv::line(mat_lines, a, b, cv::Scalar(255, 255, 255), 2);
+        }
+    }
+
+    {
+        mat_tiles = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+
+        for (int y = 0; y < map.height; ++y) {
+            for (int x = 0; x < map.width; ++x) {
+                int         tile    = TilemapGet(&map, x, y);
+                cv::Vec3b&  pixel   = mat_tiles.at<cv::Vec3b>(y, x);
+
+                switch (tile) {
+                    case TILE_EDGE:         pixel = { 255,    0,   0 }; break;
+                    case TILE_ROAD:         pixel = {   0,  255,   0 }; break;
+                    case TILE_ROAD_EDGE:    pixel = {  25,  100,  50 }; break;
+                    case TILE_CENTER:       pixel = {   0,  100, 255 }; break;
+                    case TILE_LANE_CENTER:  pixel = { 150,   70,  50 }; break;
+                }
+            }
+        }
+    }
+}
+
+void ImageProc::Render(void)
+{
+    cv::imshow("hough_lines",   mat_lines);
+    cv::imshow("tilemap",       mat_tiles);
+    cv::imshow("frame",         mat_edge);
+    cv::imshow("and",           mat_and);
+}
+
+#if 0
+
+int main(void)
+{
+    cv::Mat frame = cv::imread("../testPics/real1.jpg");
+
+#if 1
+    cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
+    cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
+    cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
+#endif
+
+    ImageProc::Init();
+    ImageProc::Update(frame);
+    ImageProc::Render();
 
     cv::waitKey(0);
 }
@@ -89,126 +146,36 @@ int main(void)
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
 
-    Tilemap map;
+    cv::Mat frame;
 
-    cv::namedWindow("capture",      cv::WINDOW_NORMAL);
-    cv::namedWindow("tilemap",      cv::WINDOW_NORMAL);
-    cv::namedWindow("hough_lines",  cv::WINDOW_NORMAL);
-
-    cv::Mat capture;
-
-    std::vector<cv::Vec4i> hough_lines;
-    hough_lines.reserve(1024 * 1024);
+    ImageProc::Init();
 
     while (true) {
-        int key = cv::waitKey(16);
+        int key = cv::waitKey(1);
 
         if (key == 27) break;
 
         system("cls");
 
-        cap >> capture;
+        cap >> frame;
 
         if (1) {
-            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+            cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
+            cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
             
-            cv::flip(capture, capture, 0);
-            cv::flip(capture, capture, 1);
+            cv::flip(frame, frame, 0);
+            cv::flip(frame, frame, 1);
         }
 
-        MatToEdge(capture);
-
-        cv::imshow("canny", capture);
-
-        TilemapResize(&map, capture.cols, capture.rows, 8);
-        TilemapClear(&map);
-
-        TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
-
-        TilemapFloodFillRoad(&map, &map, map.width / 2, map.height - 1);
-        //TilemapDialate();
-
-        // road edge masking
-        {
-            cv::Mat and_mat = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC1);
-
-            for (int y = 0; y < map.height; ++y) {
-                for (int x = 0; x < map.width; ++x) {
-                    int tile = TilemapGet(&map, x, y);
-
-                    if (tile == TILE_ROAD_EDGE) {
-                        cv::Point a = { (int)(map.cell_size * x), (int)(map.cell_size * y) };
-                        cv::Point b = a + cv::Point(map.cell_size, map.cell_size);
-
-                        cv::rectangle(and_mat, a, b, cv::Scalar(255), -1);
-                    }
-                }
-            }
-
-            cv::bitwise_and(capture, and_mat, capture);
-
-            cv::imshow("and", and_mat);
-        }
-
-        TilemapDrawRoadCenter(&map, &map, 0);
-
-        RoadState state = TilemapGetRoadState(&map);
-        float     pos   = TilemapGetRoadPosition(&map, state);
-
-        if (state & ROAD_UP)    puts("found up");
-        if (state & ROAD_LEFT)  puts("found left");
-        if (state & ROAD_RIGHT) puts("found right");
-    
-        // get hough_lines:
         {
             clock_t start = clock();
-
-            cv::Mat lines = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC3);
-
-	        cv::HoughLinesP(capture, hough_lines, 2, CV_PI / 90.0f, 20, 10, 40);
-
-            for (int i = 0; i < hough_lines.size(); ++i) {
-                auto line = hough_lines[i];
-
-                cv::Point a = { line[0], line[1] };
-                cv::Point b = { line[2], line[3] };
-
-                cv::line(lines, a, b, cv::Scalar(255, 255, 255), 2);
-            }
-
-            cv::resizeWindow("hough_lines", lines.cols, lines.rows);
-            cv::imshow("hough_lines", lines);
-
+            ImageProc::Update(frame);
             clock_t end = clock();
 
             printf("%d\n", (int)(end - start));
         }
 
-        {
-            cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
-
-            for (int y = 0; y < map.height; ++y) {
-                for (int x = 0; x < map.width; ++x) {
-                    int         tile    = TilemapGet(&map, x, y);
-                    cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
-
-                    switch (tile) {
-                        case TILE_EDGE:         pixel = { 255,    0,   0 }; break;
-                        case TILE_ROAD:         pixel = {   0,  255,   0 }; break;
-                        case TILE_ROAD_EDGE:    pixel = {  25,  100,  50 }; break;
-                        case TILE_CENTER:       pixel = {   0,  100, 255 }; break;
-                        case TILE_LANE_CENTER:  pixel = { 150,   70,  50 }; break;
-                    }
-                }
-            }
-
-            cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
-            cv::imshow("tilemap", tilemap);
-        }
-
-        cv::resizeWindow("capture", capture.cols, capture.rows);
-        cv::imshow("capture", capture);
+        ImageProc::Render();
     }
 }
 
