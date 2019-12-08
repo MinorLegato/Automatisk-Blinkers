@@ -97,8 +97,6 @@ int main(void)
 
     cv::Mat capture;
 
-    int dialate_count = 0;
-
     std::vector<cv::Vec4i> hough_lines;
     hough_lines.reserve(1024 * 1024);
 
@@ -106,10 +104,6 @@ int main(void)
         int key = cv::waitKey(16);
 
         if (key == 27) break;
-        if (key == '1') dialate_count--;
-        if (key == '2') dialate_count++;
-
-        dialate_count = CLAMP(dialate_count, 0, 10);
 
         system("cls");
 
@@ -125,25 +119,36 @@ int main(void)
 
         MatToEdge(capture);
 
+        cv::imshow("canny", capture);
+
         TilemapResize(&map, capture.cols, capture.rows, 8);
         TilemapClear(&map);
 
         TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
 
-        for (int i = 0; i < dialate_count; ++i)
-            TilemapDialate(&map);
-
-        TilemapFloodFill(&map, &map, map.width / 2, map.height - 1, TILE_ROAD);
+        TilemapFloodFillRoad(&map, &map, map.width / 2, map.height - 1);
+        //TilemapDialate();
 
         // road edge masking
         {
-            cv::Mat and_mask = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC1);
+            cv::Mat and_mat = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC1);
 
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
-                    //
+                    int tile = TilemapGet(&map, x, y);
+
+                    if (tile == TILE_ROAD_EDGE) {
+                        cv::Point a = { (int)(map.cell_size * x), (int)(map.cell_size * y) };
+                        cv::Point b = a + cv::Point(map.cell_size, map.cell_size);
+
+                        cv::rectangle(and_mat, a, b, cv::Scalar(255), -1);
+                    }
                 }
             }
+
+            cv::bitwise_and(capture, and_mat, capture);
+
+            cv::imshow("and", and_mat);
         }
 
         TilemapDrawRoadCenter(&map, &map, 0);
@@ -161,7 +166,7 @@ int main(void)
 
             cv::Mat lines = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC3);
 
-	        cv::HoughLinesP(capture, hough_lines, 2, CV_PI / 90.0f, 10, 10, 10);
+	        cv::HoughLinesP(capture, hough_lines, 2, CV_PI / 90.0f, 20, 10, 40);
 
             for (int i = 0; i < hough_lines.size(); ++i) {
                 auto line = hough_lines[i];
@@ -189,19 +194,11 @@ int main(void)
                     cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
 
                     switch (tile) {
-                        case TILE_EDGE:
-                            pixel = { 255, 0, 0 };
-                            break;
-                        case TILE_ROAD:
-                            pixel = { 0, 255, 0 };
-                            break;
-                        case TILE_CENTER:
-                            pixel = { 0, 100, 255 };
-                            break;
-                        case TILE_LANE_CENTER:
-                            pixel = { 150, 70, 50 };
-                            break;
-
+                        case TILE_EDGE:         pixel = { 255,    0,   0 }; break;
+                        case TILE_ROAD:         pixel = {   0,  255,   0 }; break;
+                        case TILE_ROAD_EDGE:    pixel = {  25,  100,  50 }; break;
+                        case TILE_CENTER:       pixel = {   0,  100, 255 }; break;
+                        case TILE_LANE_CENTER:  pixel = { 150,   70,  50 }; break;
                     }
                 }
             }

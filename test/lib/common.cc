@@ -234,6 +234,7 @@ enum
     TILE_NONE,
     TILE_EDGE,
     TILE_ROAD,
+    TILE_ROAD_EDGE,
     TILE_CENTER,
     TILE_LANE_CENTER
 };
@@ -332,7 +333,51 @@ static void TilemapFloodFill(Tilemap* dst, const Tilemap *map, int start_x, int 
     }
 }
 
-static void TilemapDialate(Tilemap *map, int tile_type = TILE_EDGE)
+static void TilemapFloodFillRoad(Tilemap* dst, const Tilemap *map, int start_x, int start_y)
+{
+    struct Point { int x, y; };
+
+    static Point *point_stack   = NULL;
+
+    point_stack = (Point *)realloc(point_stack, map->width * map->height * sizeof (Point));
+
+    int point_count = 0;
+
+    point_stack[point_count++] = { start_x, start_y };
+
+    int start_tile = map->tiles[start_y * map->width + start_x];
+
+    while (point_count) {
+        Point current = point_stack[--point_count];
+
+        dst->tiles[current.y * map->width + current.x] = TILE_ROAD;
+
+        const Point ns[4] = {
+            current.x,     current.y - 1,
+            current.x,     current.y + 1,
+            current.x - 1, current.y,
+            current.x + 1, current.y
+        };
+
+        for (int i = 0; i < ARRAY_COUNT(ns); ++i) {
+            Point n = ns[i];
+
+            if (n.x < 0 || n.x >= map->width)  continue;
+            if (n.y < 0 || n.y >= map->height) continue;
+
+            if (dst->tiles[n.y * map->width + n.x] == TILE_ROAD) continue;
+
+            if (start_tile != map->tiles[n.y * map->width + n.x]) {
+                dst->tiles[n.y * map->width + n.x] = TILE_ROAD_EDGE;
+                continue;
+            }
+
+            point_stack[point_count++] = n;
+        }
+    }
+}
+
+static void TilemapDialate(Tilemap *map, int tile_type)
 {
     static int *old = NULL;
 
@@ -362,7 +407,7 @@ static void TilemapDialate(Tilemap *map, int tile_type = TILE_EDGE)
     }
 }
 
-static void TilemapErode(Tilemap *map, int tresh = 1, int tile_type = TILE_EDGE)
+static void TilemapErode(Tilemap *map, int tresh, int tile_type)
 {
     static int *old = NULL;
 
