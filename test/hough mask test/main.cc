@@ -117,6 +117,7 @@ int main(void)
 
         if (1) {
             cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
             
             cv::flip(capture, capture, 0);
             cv::flip(capture, capture, 1);
@@ -124,7 +125,7 @@ int main(void)
 
         MatToEdge(capture);
 
-        TilemapResize(&map, capture.cols, capture.rows, 16);
+        TilemapResize(&map, capture.cols, capture.rows, 8);
         TilemapClear(&map);
 
         TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
@@ -133,6 +134,17 @@ int main(void)
             TilemapDialate(&map);
 
         TilemapFloodFill(&map, &map, map.width / 2, map.height - 1, TILE_ROAD);
+
+        // road edge masking
+        {
+            cv::Mat and_mask = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC1);
+
+            for (int y = 0; y < map.height; ++y) {
+                for (int x = 0; x < map.width; ++x) {
+                    //
+                }
+            }
+        }
 
         TilemapDrawRoadCenter(&map, &map, 0);
 
@@ -147,23 +159,20 @@ int main(void)
         {
             clock_t start = clock();
 
-            cv::Mat lines = cv::Mat::zeros(capture.cols, capture.rows, CV_8UC3);
+            cv::Mat lines = cv::Mat::zeros(capture.rows, capture.cols, CV_8UC3);
 
-            //hough_lines.clear();
-
-	        //cv::HoughLinesP(capture, hough_lines, 1, CV_PI / 180.0f, 20, 10, 100);
 	        cv::HoughLinesP(capture, hough_lines, 2, CV_PI / 90.0f, 10, 10, 10);
 
             for (int i = 0; i < hough_lines.size(); ++i) {
-                cv::Vec4i line = hough_lines[i];
+                auto line = hough_lines[i];
 
                 cv::Point a = { line[0], line[1] };
                 cv::Point b = { line[2], line[3] };
 
-                cv::line(lines, a, b, cv::Scalar(0, 100, 200), 2);
+                cv::line(lines, a, b, cv::Scalar(255, 255, 255), 2);
             }
 
-            cv::resizeWindow("hough_lines", capture.cols, capture.rows);
+            cv::resizeWindow("hough_lines", lines.cols, lines.rows);
             cv::imshow("hough_lines", lines);
 
             clock_t end = clock();
@@ -204,7 +213,6 @@ int main(void)
         cv::resizeWindow("capture", capture.cols, capture.rows);
         cv::imshow("capture", capture);
     }
-
-    cv::waitKey(0);
 }
+
 #endif
