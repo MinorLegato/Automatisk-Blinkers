@@ -239,10 +239,10 @@ enum
 
 struct Tilemap
 {
-    int     width;
-    int     height;
-    int     cell_size;
-    int     *tiles;
+    int32_t     width;
+    int32_t     height;
+    int32_t     cell_size;
+    uint8_t     *tiles;
 };
 
 static int TilemapGet(const Tilemap *map, int x, int y)
@@ -257,15 +257,7 @@ static void TilemapSet(Tilemap *map, int x, int y, int tile)
 
 static void TilemapClear(Tilemap *map)
 {
-    memset(map->tiles, 0, (map->width * map->height) * sizeof (int));
-}
-
-static bool TilemapContains(const Tilemap *map, int x, int y)
-{
-    if (x < 0 || x >= map->width)  return false;
-    if (y < 0 || y >= map->height) return false;
-
-    return true;
+    memset(map->tiles, 0, (map->width * map->height) * sizeof *map->tiles);
 }
 
 static void TilemapResize(Tilemap *map, int image_width, int image_height, int cell_size)
@@ -273,7 +265,7 @@ static void TilemapResize(Tilemap *map, int image_width, int image_height, int c
     map->cell_size  = cell_size;
     map->width      = image_width  / map->cell_size;
     map->height     = image_height / map->cell_size;
-    map->tiles      = (int *)realloc(map->tiles, map->width * map->height * sizeof (int));
+    map->tiles      = (decltype(map->tiles))realloc(map->tiles, map->width * map->height * sizeof *map->tiles);
 }
 
 static void TilemapFillEdges(Tilemap *map, const unsigned char *data, int width, int height, int marker = TILE_EDGE)

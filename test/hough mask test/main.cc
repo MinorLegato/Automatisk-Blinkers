@@ -4,26 +4,17 @@
 #include <time.h>
 
 #include <vector>
+mage 
+static std::vector<cv::Vec4i>  hough_lines;
 
-namespace ImageProc
-{
-    // data:
-    std::vector<cv::Vec4i>  hough_lines;
+static cv::Mat                 mat_edge;
+static cv::Mat                 mat_lines;
+static cv::Mat                 mat_and;
+static cv::Mat                 mat_tiles;
 
-    cv::Mat                 mat_edge;
-    cv::Mat                 mat_lines;
-    cv::Mat                 mat_and;
-    cv::Mat                 mat_tiles;
+static Tilemap                 map;
 
-    Tilemap                 map;
-
-    // functions:
-    void Init   (void);
-    void Update (const cv::Mat &frame);
-    void Render (void);
-}
-
-void ImageProc::Init(void)
+static void ImageProcInit(void)
 {
     hough_lines.reserve(1028 * 512);
 
@@ -33,7 +24,15 @@ void ImageProc::Init(void)
     cv::namedWindow("and", cv::WINDOW_NORMAL);
 }
 
-void ImageProc::Update(const cv::Mat &frame)
+static void ImageProcRender(void)
+{
+    cv::imshow("hough_lines",   mat_lines);
+    cv::imshow("tilemap",       mat_tiles);
+    cv::imshow("edge",          mat_edge);
+    cv::imshow("and",           mat_and);
+}
+
+static void ImageProcUpdate(const cv::Mat &frame)
 {
     MatToEdge(mat_edge, frame);
 
@@ -109,14 +108,6 @@ void ImageProc::Update(const cv::Mat &frame)
     }
 }
 
-void ImageProc::Render(void)
-{
-    cv::imshow("hough_lines",   mat_lines);
-    cv::imshow("tilemap",       mat_tiles);
-    cv::imshow("edge",          mat_edge);
-    cv::imshow("and",           mat_and);
-}
-
 #if 1
 
 int main(void)
@@ -129,9 +120,9 @@ int main(void)
     cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
 #endif
 
-    ImageProc::Init();
-    ImageProc::Update(frame);
-    ImageProc::Render();
+    ImageProcInit();
+    ImageProcUpdate(frame);
+    ImageProcRender();
 
     cv::namedWindow("frame", cv::WINDOW_NORMAL);
     cv::imshow("frame", frame);
