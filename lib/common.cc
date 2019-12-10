@@ -458,7 +458,7 @@ enum
     ROAD_TWO_LANES  = (1 << 3),
 };
 
-static int GetRoadHeight(const Tilemap *map)
+static int TilemapGetRoadHeight(const Tilemap *map)
 {
     for (int y = 0; y < map->height; ++y) {
         for (int x = 0; x < map->width; ++x) {
@@ -476,11 +476,13 @@ static float TilemapGetRoadPosition(const Tilemap *map, RoadState state)
     int     road_left  = 0;
     int     road_right = map->width - 1;
 
-    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD)
+    while (road_left < map->height && TilemapGet(map, road_left, map->height - 1) != TILE_ROAD) {
         road_left++;
+    }
 
-    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD)
+    while (road_right >= 0 && TilemapGet(map, road_right, map->height - 1) != TILE_ROAD) {
         road_right--;
+    }
 
     float road_center = 0.5f * (road_right + road_left);
     float road_position = (center - road_center) / (0.5f * (road_right - road_left));
@@ -503,7 +505,7 @@ static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_
     int tiles_total = 0;
     int tiles_edge  = 0;
 
-    int height = GetRoadHeight(map);
+    int height = TilemapGetRoadHeight(map);
 
     for (int y = height; y < map->height; ++y) {
         int left  = 0.5f * map->width;
@@ -542,7 +544,6 @@ static float TilemapDrawRoadCenter(Tilemap *dst, const Tilemap *map, int center_
 static bool TilemapIsRoadHorizontalAt(const Tilemap *map, int x)
 {
     int prev_tile   = TILE_NONE;
-    int changes     = 0;
 
     for (int y = 0; y < map->height; ++y) {
         int tile = TilemapGet(map, x, y);
@@ -558,19 +559,20 @@ static bool TilemapIsRoadHorizontalAt(const Tilemap *map, int x)
 
 static bool TilemapIsRoadVerticalAt(const Tilemap *map, int y)
 {
-    int prev_tile   = TILE_NONE;
-    int changes     = 0;
+    bool edge_left  = false;
+    bool edge_right = false;
 
-    for (int x = 0; x < map->width; ++x) {
-        int tile = TilemapGet(map, x, y);
+    for (int x = 1; x < map->width - 1; ++x) {
+        if (TilemapGet(map, x, y) == TILE_ROAD && TilemapGet(map, x - 1, y) != TILE_ROAD) { 
+            edge_left  = true;
+        }
 
-        if (prev_tile == TILE_ROAD && tile != TILE_ROAD)
-            return true;
-
-        prev_tile = tile;
+        if (TilemapGet(map, x, y) == TILE_ROAD && TilemapGet(map, x + 1, y) != TILE_ROAD) {
+            edge_right = true;
+        }
     }
 
-    return false;
+    return edge_left && edge_right;
 }
 
 static RoadState TilemapGetRoadState(const Tilemap *map)
@@ -578,13 +580,12 @@ static RoadState TilemapGetRoadState(const Tilemap *map)
     RoadState result = 0;
 
     int sx  = 1;
-    int sy  = GetRoadHeight(map);
+    int sy  = TilemapGetRoadHeight(map);
     int ex  = map->width  - 2;
-    int ey  = map->height - 1;
 
-    if (TilemapIsRoadHorizontalAt(map, sx))   result |= ROAD_LEFT;
-    if (TilemapIsRoadHorizontalAt(map, ex))   result |= ROAD_RIGHT;
-    if (TilemapIsRoadVerticalAt(map, sy + 1)) result |= ROAD_UP;
+    if (TilemapIsRoadHorizontalAt(map, sx)) result |= ROAD_LEFT;
+    if (TilemapIsRoadHorizontalAt(map, ex)) result |= ROAD_RIGHT;
+    if (TilemapIsRoadVerticalAt(map, sy))   result |= ROAD_UP;
 
     return result;
 }

@@ -5,12 +5,12 @@
 
 static std::vector<cv::Vec4i>  hough_lines;
 
-static cv::Mat                 mat_edge;
-static cv::Mat                 mat_lines;
-static cv::Mat                 mat_and;
-static cv::Mat                 mat_tiles;
+static cv::Mat  mat_edge;
+static cv::Mat  mat_lines;
+static cv::Mat  mat_and;
+static cv::Mat  mat_tiles;
 
-static Tilemap                 map;
+static Tilemap  map;
 
 static void ImageProcInit(void)
 {
@@ -20,14 +20,6 @@ static void ImageProcInit(void)
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
     cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
     cv::namedWindow("and", cv::WINDOW_NORMAL);
-}
-
-static void ImageProcRender(void)
-{
-    cv::imshow("hough_lines",   mat_lines);
-    cv::imshow("tilemap",       mat_tiles);
-    cv::imshow("edge",          mat_edge);
-    cv::imshow("and",           mat_and);
 }
 
 static InterPos ImageProcUpdate(const cv::Mat &frame)
@@ -41,7 +33,7 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
 
     TilemapFloodFillRoad(&map, &map, map.width / 2, map.height - 1);
 
-    // road edge masking
+    // road edge masking and hough lines
     {
         mat_and = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC1);
 
@@ -59,22 +51,22 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
         }
 
         cv::bitwise_and(mat_edge, mat_and, mat_edge);
+        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 100);
     }
-
-    TilemapDrawRoadCenter(&map, &map, 0);
 
     RoadState state = TilemapGetRoadState(&map);
     float     pos   = TilemapGetRoadPosition(&map, state);
 
-    if (state & ROAD_UP)    puts("found up");
-    if (state & ROAD_LEFT)  puts("found left");
-    if (state & ROAD_RIGHT) puts("found right");
+    TilemapDrawRoadCenter(&map, &map, 0);
+    
+    return { state, pos };
+}
 
+static void ImageProcRender(void)
+{
     // get hough_lines:
     {
         mat_lines = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
-
-        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 100);
 
         for (int i = 0; i < hough_lines.size(); ++i) {
             auto line = hough_lines[i];
@@ -91,8 +83,8 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
 
         for (int y = 0; y < map.height; ++y) {
             for (int x = 0; x < map.width; ++x) {
-                int         tile    = TilemapGet(&map, x, y);
-                cv::Vec3b&  pixel   = mat_tiles.at<cv::Vec3b>(y, x);
+                int        tile  = TilemapGet(&map, x, y);
+                cv::Vec3b& pixel = mat_tiles.at<cv::Vec3b>(y, x);
 
                 switch (tile) {
                     case TILE_EDGE:         pixel = { 255,    0,   0 }; break;
@@ -105,7 +97,9 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
         }
     }
 
-    return { state, pos };
+    cv::imshow("hough_lines", mat_lines);
+    cv::imshow("tilemap",  mat_tiles);
+    cv::imshow("edge",  mat_edge);
+    cv::imshow("and",  mat_and);
 }
-
 

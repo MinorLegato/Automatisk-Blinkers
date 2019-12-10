@@ -1,22 +1,28 @@
-#include "../lib/common.cc"
-#include "../lib/matToLines.cc"
-#include "../lib/klass.cc"
-#include "../lib/image_proc.cc"
+#include "../../lib/common.cc"
+#include "../../lib/matToLines.cc"
+#include "../../lib/klass.cc"
+#include "../../lib/image_proc.cc"
 
-#if 0
+#if 1
 
 int main(void)
 {
-    cv::Mat frame = cv::imread("../testPics/real1.jpg");
+    cv::Mat frame = cv::imread("../testPics/3crossingtest2.png");
 
 #if 1
-    cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
     cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
     cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
 #endif
 
     ImageProcInit();
-    ImageProcUpdate(frame);
+
+    InterPos state = ImageProcUpdate(frame);
+
+    if (state.type & ROAD_UP)           puts("found up");
+    if (state.type & ROAD_LEFT)         puts("found left");
+    if (state.type & ROAD_RIGHT)        puts("found right");
+    if (state.type & ROAD_TWO_LANES)    puts("two lanes");
+
     ImageProcRender();
 
     cv::namedWindow("frame", cv::WINDOW_NORMAL);
@@ -61,7 +67,9 @@ int main(void)
         {
             clock_t start = clock();
             InterPos state = ImageProcUpdate(frame);
+
             klassList.push(state);
+
             clock_t end = clock();
 
             printf("%d\n", (int)(end - start));
@@ -69,10 +77,6 @@ int main(void)
             printf("Klass type %d\n", klassList.type);
             printf("Klass pos %.2f\n", klassList.pos);
             printf("Pos In %.2f\n", state.pos);
-
-
-
-
         }
 
         ImageProcRender();

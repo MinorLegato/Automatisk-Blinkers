@@ -131,9 +131,7 @@ struct InterPosList {
 		}
 	}
 
-
-
-	void analyze() {
+	int analyze() {
 		switch (type) {
 		case 3:
 			leftUp();
