@@ -6,13 +6,11 @@
 *    -1 -> 1//left -> right
 */
 /*      Type             #
-	*	no way		     0
-	*	single file way	 1
-	*	up-left          3
-	*	up-right         5
-	*	left-right       6
-	*   up-left-right    7
-	*   two-files        8
+     ROAD_NONE       = (0),
+     ROAD_UP         = (1 << 0),
+     ROAD_LEFT       = (1 << 1),
+     ROAD_RIGHT      = (1 << 2),
+     ROAD_TWO_LANES  = (1 << 3),
 	*/
 
 struct InterPos {
@@ -50,7 +48,6 @@ struct InterPosList {
 	void push(InterPos newInput) {
 		//at size 10
 		if (size == maxSize) {
-			posSum = posSum - list[index].pos;
 
 			if (typeCheck[list[index].type] > 0) {
 				typeCheck[list[index].type]--;
@@ -62,6 +59,11 @@ struct InterPosList {
 			typeCheck[list[index].type]++;
 			if (typeCheck[list[index].type] == typeThreshold) {
 				type = typeCheck[list[index].type];
+			}
+
+			posSum = 0;
+			for(InterPos a : list){
+				posSum += a.pos;
 			}
 			pos = posSum / maxSize;
 
@@ -86,7 +88,6 @@ struct InterPosList {
 		else if (size == (maxSize-1)) {
 
 			list[index] = newInput;
-			posSum += newInput.pos;
 			typeCheck[newInput.type]++;
 
 			for (InterPos temp : list) {
@@ -94,7 +95,6 @@ struct InterPosList {
 					type = temp.type;
 				}
 			}
-			pos = posSum / maxSize;
 
 
 			difList[difListIndex] = newInput.pos - posPrev;
@@ -113,7 +113,6 @@ struct InterPosList {
 		//size below 9
 		else {
 			list[index] = newInput;
-			posSum = posSum + newInput.pos;
 			typeCheck[newInput.type]++;
 
 			if (size != 0) {
@@ -138,12 +137,6 @@ struct InterPosList {
 
 	void analyze() {
 		switch (type) {
-		case 0:
-			blink = 0;
-		case 1:
-			blink = 0;
-		case 2:
-			
 		case 3:
 			leftUp();
 		case 4:
@@ -154,8 +147,10 @@ struct InterPosList {
 			leftRight();
 		case 7:
 			leftRightUp();
-		}
-
+		
+        case 8:
+            twoFiles();
+        }
 	}
 
 	/*
@@ -179,13 +174,11 @@ struct InterPosList {
 	void leftRightUp() {
 		if (pos > 0.5) blink = 1;
 		else if (pos < -0.5)  blink = -1;
-		else blink = 0;
 	}
 
 	//File change
 	void twoFiles() {
 		if (posDifAvg > -0.03) blink = -1;
 		else if (posDifAvg > 0.03) blink = 1;
-		else blink = 0;
 	}
 };

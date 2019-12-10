@@ -39,6 +39,8 @@ int main(void)
 
     ImageProcInit();
 
+    InterPosList klassList;
+
     while (true) {
         int key = cv::waitKey(1);
 
@@ -58,10 +60,19 @@ int main(void)
 
         {
             clock_t start = clock();
-            ImageProcUpdate(frame);
+            InterPos state = ImageProcUpdate(frame);
+            klassList.push(state);
             clock_t end = clock();
 
             printf("%d\n", (int)(end - start));
+            printf("Klass blink %d\n", klassList.blink);
+            printf("Klass type %d\n", klassList.type);
+            printf("Klass pos %.2f\n", klassList.pos);
+            printf("Pos In %.2f\n", state.pos);
+
+
+
+
         }
 
         ImageProcRender();
