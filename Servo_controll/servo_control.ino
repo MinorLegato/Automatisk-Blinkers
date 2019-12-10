@@ -67,27 +67,20 @@ void loop()
 
         ///////////////////////////////
         can = buf[1];                          //gets the secund value of the can-buss, witch is the direktion
-        dir = map(can, -128, 127, 20, 80);     // scale it to use it with the servo (value between 0 and 180)
+        dir = map(can, -128, 127, 80, 20);     // scale it to use it with the servo (value between 0 and 180)
 
         SERIAL.print(can);
         SERIAL.println();
         SERIAL.print(dir);
         SERIAL.println();
         SERIAL.print(temp);
-
-        if(temp > dir)
-        {
-          temp--;
-          myservo.write(temp); 
-        }
         
-        if(temp < dir)
+        if(temp != dir)
         {
-          temp++;
-          myservo.write(temp); 
-        }
+          myservo.write(dir); 
+		  temp = dir;
+		}
         
-        delay(15);
 
         /*
 
