@@ -17,7 +17,7 @@ struct InterPos {
 };
 
 struct InterPosList {
-	static const int maxSize = 10;
+	static const int maxSize = 2;
 	static const int typeTypes = 10;
 	static const int difListSize = (int)maxSize * 0.5;
 	static const int typeThreshold = (int)maxSize * 0.8;
@@ -136,7 +136,7 @@ struct InterPosList {
 
 
 	int analyze() {
-		if(size != 10) return 0;
+		if(size != maxSize) return 0;
 		switch (type) {
 		case 3:
 			leftUp();
@@ -164,18 +164,23 @@ struct InterPosList {
 	}
 
 	void leftUp() {
+		printf("pos %.2f\n", pos);
 		if (pos < 0) blink = -1;
+		else blink = 0;
+		printf("blink %d", blink);
 	}
 
 	void rightUp() {
-		if (pos < 0) blink = 1;
+		if (pos > 0) blink = 1;
+		else blink = 0;
 	}
 
 
 	//4-wayintersection
 	void leftRightUp() {
-		if (pos > 0.5) blink = 1;
-		else if (pos < -0.5)  blink = -1;
+		if (pos > 0.1) blink = 1;
+		else if (pos < -0.1)  blink = -1;
+		else blink = 0;
 	}
 
 	//File change

@@ -16,10 +16,10 @@ static void ImageProcInit(void)
 {
     hough_lines.reserve(1028 * 512);
 
-    cv::namedWindow("edge", cv::WINDOW_NORMAL);
+    //cv::namedWindow("edge", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
-    cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
-    cv::namedWindow("and", cv::WINDOW_NORMAL);
+    //cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
+    //cv::namedWindow("and", cv::WINDOW_NORMAL);
 }
 
 static InterPos ImageProcUpdate(const cv::Mat &frame)
@@ -65,7 +65,7 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
 static void ImageProcRender(void)
 {
     // get hough_lines:
-    {
+    if (0) {
         mat_lines = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
 
         for (int i = 0; i < hough_lines.size(); ++i) {
@@ -79,8 +79,32 @@ static void ImageProcRender(void)
     }
 
     {
-        mat_tiles = cv::Mat::zeros(map.height, map.width, CV_8UC3);
+        mat_tiles = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
 
+        for (int y = 0; y < map.height; ++y) {
+            for (int x = 0; x < map.width; ++x) {
+                int tile = TilemapGet(&map, x, y);
+
+                if (tile != TILE_NONE) {
+                    cv::Point a = { (int)(map.cell_size * x), (int)(map.cell_size * y) };
+                    cv::Point b = a + cv::Point(map.cell_size, map.cell_size);
+
+                    cv::Scalar scaler = { 0, 0, 0 };
+
+                    switch (tile) {
+                        case TILE_EDGE:         scaler = { 255,    0,   0 }; break;
+                        case TILE_ROAD:         scaler = {   0,  255,   0 }; break;
+                        case TILE_ROAD_EDGE:    scaler = {  25,  100,  50 }; break;
+                        case TILE_CENTER:       scaler = {   0,  100, 255 }; break;
+                        case TILE_LANE_CENTER:  scaler = { 150,   70,  50 }; break;
+                    }
+
+                    cv::rectangle(mat_tiles, a, b, scaler, -1);
+                }
+            }
+        }
+
+#if 0
         for (int y = 0; y < map.height; ++y) {
             for (int x = 0; x < map.width; ++x) {
                 int        tile  = TilemapGet(&map, x, y);
@@ -95,11 +119,15 @@ static void ImageProcRender(void)
                 }
             }
         }
+#endif
     }
 
-    cv::imshow("hough_lines", mat_lines);
+
+    //cv::imshow("hough_lines", mat_lines);
+    //cv::resizeWindow("tilemap", mat_edge.cols, mat_edge.rows);
     cv::imshow("tilemap",  mat_tiles);
-    cv::imshow("edge",  mat_edge);
-    cv::imshow("and",  mat_and);
+
+    //cv::imshow("edge",  mat_edge);
+    //cv::imshow("and",  mat_and);
 }
 
