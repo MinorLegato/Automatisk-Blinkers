@@ -5,19 +5,22 @@
 #include "canlib.h"
 #include "net.h"
 
-#include <stdint.h>
+#include "../../controller/controller.c"
+
 #include <thread>
 
 #include <iostream>
 
 #define ARRAY_COUNT(array) (sizeof (array) / sizeof (array[0]))
 
+#if 0
 struct Controller
 {
 	int8_t 	thrust;
 	int8_t 	steering;
 	int8_t 	blink;
 };
+#endif
 
 float   pos;
 int     blink;
