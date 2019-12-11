@@ -47,24 +47,26 @@ struct InterPosList {
 		//at size 10
 		if (size == maxSize) {
 
+			/* Typecheck */
 			if (typeCheck[list[index].type] > 0) {
 				typeCheck[list[index].type]--;
 			}
 
 			list[index] = newInput;
-			posSum += list[index].pos;
 
 			typeCheck[list[index].type]++;
 			if (typeCheck[list[index].type] == typeThreshold) {
 				type = typeCheck[list[index].type];
 			}
+			///
 
+			/* Pos average */
 			posSum = 0;
 			for(InterPos a : list){
 				posSum += a.pos;
 			}
 			pos = posSum / maxSize;
-
+			//
 
 			//-----pos difference-----///
 			difList[difListIndex] = newInput.pos - posPrev;
@@ -131,7 +133,27 @@ struct InterPosList {
 		}
 	}
 
+	int difAvg(){
+
+		return 0;
+	}
+	int posAvg(){
+		if(pos > 0) return 1;
+		else return -1;
+	}
+
+	bool safeCheck(InterPos in){
+
+		float dif = in.pos - pos;
+		dif = std::abs(dif);
+		if( dif > 1) return false;
+		else return true;
+
+	}
+
+
 	int analyze() {
+		if(size != 10) return 0;
 		switch (type) {
 		case 3:
 			leftUp();
@@ -143,7 +165,6 @@ struct InterPosList {
 			leftRight();
 		case 7:
 			leftRightUp();
-		
         case 8:
             twoFiles();
         }
