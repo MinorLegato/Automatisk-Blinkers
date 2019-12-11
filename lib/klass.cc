@@ -32,7 +32,7 @@ struct InterPosList {
 
 	//type of intersection/road scenario
 	int type = 0;
-	int typeCheck[typeTypes];
+	
 	
 	//Difference in pos
 	float posPrev = 0;
@@ -47,23 +47,15 @@ struct InterPosList {
 		//at size 10
 		if (size == maxSize) {
 
-			/* Typecheck */
-			if (typeCheck[list[index].type] > 0) {
-				typeCheck[list[index].type]--;
-			}
-
 			list[index] = newInput;
-
-			typeCheck[list[index].type]++;
-			if (typeCheck[list[index].type] == typeThreshold) {
-				type = typeCheck[list[index].type];
-			}
-			///
 
 			/* Pos average */
 			posSum = 0;
+			int typeCheck[typeTypes];
 			for(InterPos a : list){
 				posSum += a.pos;
+				typeCheck[a.type]++;
+				if(typeCheck[a.type] > typeThreshold) type = a.type;
 			}
 			pos = posSum / maxSize;
 			//
@@ -88,15 +80,7 @@ struct InterPosList {
 		else if (size == (maxSize-1)) {
 
 			list[index] = newInput;
-			typeCheck[newInput.type]++;
-
-			for (InterPos temp : list) {
-				if (typeCheck[temp.type] >= typeThreshold) {
-					type = temp.type;
-				}
-			}
-
-
+		
 			difList[difListIndex] = newInput.pos - posPrev;
 			float posDifSum = 0;
 			for (float dif : difList) {
@@ -113,7 +97,6 @@ struct InterPosList {
 		//size below 9
 		else {
 			list[index] = newInput;
-			typeCheck[newInput.type]++;
 
 			if (size != 0) {
 				difList[difListIndex] = newInput.pos - posPrev;
