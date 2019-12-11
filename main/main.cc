@@ -14,17 +14,8 @@
 
 #define ARRAY_COUNT(array) (sizeof (array) / sizeof (array[0]))
 
-#if 0
-struct Controller
-{
-	int8_t 	thrust;
-	int8_t 	steering;
-	int8_t 	blink;
-};
-#endif
-
-float   pos;
-int     blink;
+static float   pos;
+static int     blink;
 
 static Controller controller = {0};
 
@@ -69,30 +60,41 @@ int main(void)
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240);
 
-    //ImageProcInit();
+    ImageProcInit();
 
     InterPosList klass;
 
     cv::Mat frame;
 
     while (cv::waitKey(16) != 27) {
+        clock_t start = clock();
+
         cap >> frame;
+
+        cv::imshow("frame", frame);
 
         InterPos state = ImageProcUpdate(frame);
         klass.push(state);
 
-        //blink = klass.analyze();
+        blink = klass.analyze();
         //blink = klass.posAvg();
         
-        //printf("blink %d\n", klass.blink);
-        //printf("pos %.2f\n", klass.pos);
-        //printf("pos %d\n", klass.type);
-
-        //if (state.type & ROAD_UP)    puts("found up");
-        //if (state.type & ROAD_LEFT)  puts("found left");
-        //if (state.type & ROAD_RIGHT) puts("found right");
-
         ImageProcRender();
+
+        clock_t end = clock();
+
+        printf("ms: %d\n", (int)((end - start) / 1000));
+
+        system("clear");
+
+        printf("blink %d\n", klass.blink);
+        printf("pos %.2f\n", klass.pos);
+        printf("pos %d\n", klass.type);
+
+        if (state.type & ROAD_UP)    puts("found up");
+        if (state.type & ROAD_LEFT)  puts("found left");
+        if (state.type & ROAD_RIGHT) puts("found right");
+
     }
 
 #if 0
