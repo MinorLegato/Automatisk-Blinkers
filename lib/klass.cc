@@ -117,7 +117,6 @@ struct InterPosList {
 	}
 
 	int difAvg(){
-
 		return 0;
 	}
 	int posAvg(){
@@ -136,18 +135,23 @@ struct InterPosList {
 
 
 	int analyze() {
+<<<<<<< HEAD
 		if(size != maxSize) return 0;
+=======
+		if(size != 10) blink = 0;
+
+>>>>>>> 2cd3a05850a7ae88fe571ac372c27b3249d4895d
 		switch (type) {
 		case 3:
-			leftUp();
+			blink = leftUp();
 		case 4:
 
 		case 5:
-			rightUp();
+			blink = rightUp();
 		case 6:
-			leftRight();
+			blink = leftRight();
 		case 7:
-			leftRightUp();
+			blink = leftRightUp();
         case 8:
             twoFiles();
         }
@@ -158,11 +162,12 @@ struct InterPosList {
 	/*
 		Threeway intersecion
 	*/
-	void leftRight() {
-		if (pos > 0) blink = 1;
-		else blink = -1;
+	int leftRight() {
+		if (pos > 0) return 1;
+		else return -1;
 	}
 
+<<<<<<< HEAD
 	void leftUp() {
 		printf("pos %.2f\n", pos);
 		if (pos < 0) blink = -1;
@@ -173,14 +178,31 @@ struct InterPosList {
 	void rightUp() {
 		if (pos > 0) blink = 1;
 		else blink = 0;
+=======
+	int leftUp() {
+		if (pos < 0) return -1;
+		else return 0;
+	}
+
+	int rightUp() {
+		if (pos < 0) return 1;
+		else return 0;
+>>>>>>> 2cd3a05850a7ae88fe571ac372c27b3249d4895d
 	}
 
 
 	//4-wayintersection
+<<<<<<< HEAD
 	void leftRightUp() {
 		if (pos > 0.1) blink = 1;
 		else if (pos < -0.1)  blink = -1;
 		else blink = 0;
+=======
+	int leftRightUp() {
+		if (pos > 0.5) return 1;
+		else if (pos < -0.5)  return -1;
+		else return 0;
+>>>>>>> 2cd3a05850a7ae88fe571ac372c27b3249d4895d
 	}
 
 	//File change
