@@ -2,10 +2,11 @@
 #include "../lib/klass.cc"
 #include "../lib/matToLines.cc"
 #include "../lib/image_proc.cc"
+#include "../lib/crc32.h"
 #include "canlib.h"
 #include "net.h"
 
-#include "../../controller/controller.c"
+#include "../controller/controller.c"
 
 #include <thread>
 
@@ -39,16 +40,24 @@ static void ControllerThread(void)
 
 	while (1) {
         //puts("net recv");
-		netServerRecv(&server, &controller, sizeof (Controller));
+        ControllerPackage cp = {0};
 
-        controller.blink = blink;
+		netServerRecv(&server, &cp, sizeof (ControllerPackage));
 
-		//printf("s %d\n", controller.steering);
-		//printf("b %d\n", controller.blink);
+        uint32_t code = CRC32Code(&cp.controller, sizeof (Controller));
 
-        //puts("can send");
-		canSend(&can, 0x7DF, &controller, sizeof (Controller));
-	}
+        if (cp.crc32 == code) {
+            controller = cp.controller;
+
+            controller.blink = blink;
+
+            //printf("s %d\n", controller.steering);
+            //printf("b %d\n", controller.blink);
+
+            //puts("can send");
+            canSend(&can, 0x7DF, &controller, sizeof (Controller));
+        }
+    }
 }
 
 int main(void)
@@ -73,15 +82,15 @@ int main(void)
         klass.push(state);
 
         //blink = klass.analyze();
-        blink = klass.posAvg();
+        //blink = klass.posAvg();
         
-        printf("blink %d\n", klass.blink);
-        printf("pos %.2f\n", klass.pos);
-        printf("pos %d\n", klass.type);
+        //printf("blink %d\n", klass.blink);
+        //printf("pos %.2f\n", klass.pos);
+        //printf("pos %d\n", klass.type);
 
-        if (state.type & ROAD_UP)    puts("found up");
-        if (state.type & ROAD_LEFT)  puts("found left");
-        if (state.type & ROAD_RIGHT) puts("found right");
+        //if (state.type & ROAD_UP)    puts("found up");
+        //if (state.type & ROAD_LEFT)  puts("found left");
+        //if (state.type & ROAD_RIGHT) puts("found right");
 
         ImageProcRender();
     }
