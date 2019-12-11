@@ -1,155 +1,61 @@
-#include "../lib/common.cc"
-#include "../lib/matToLines.cc"
-
+#include "../../lib/common.cc"
+#include "../../lib/matToLines.cc"
+#include "../../lib/klass.cc"
+#include"../../lib/image_proc.cc"
 #include <iostream>
 
 #include "time.h"
 
+
 int main(void)
 {
-   /// cv::VideoCapture cap("../testPics/test_video1.mp4");
-    cv::VideoCapture cap(0);
+    cv::VideoCapture cap("../testPics/test_video1.mp4");
+    //cv::VideoCapture cap(0);
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
 
-    Tilemap map;
+    cv::Mat frame;
 
-    cv::namedWindow("capture", cv::WINDOW_NORMAL);
-    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+    ImageProcInit();
 
-    cv::Mat capture;
-
-    int dialate_count = 0;
-
-	InterPosList klassification;
+    InterPosList klassList;
 
     while (true) {
-        int key = cv::waitKey(100);
+        int key = cv::waitKey(1);
 
         if (key == 27) break;
-        if (key == '1') dialate_count--;
-        if (key == '2') dialate_count++;
-
-        dialate_count = CLAMP(dialate_count, 0, 10);
 
         system("cls");
 
-        cap >> capture;
+        cap >> frame;
 
-        if (0) {
-            cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-
-            clock_t start = clock();
+        if (1) {
+            cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
+            cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
             
-            cv::flip(capture, capture, 0);
-            cv::flip(capture, capture, 1);
-
-            clock_t end = clock();
-
-            //printf("flip ms: %d\n", (int)(end - start));
+            cv::flip(frame, frame, 0);
+            cv::flip(frame, frame, 1);
         }
 
         {
             clock_t start = clock();
+            InterPos state = ImageProcUpdate(frame);
 
-            MatToEdge(capture);
-
-            clock_t end = clock();
-
-          //  printf("MatToLines ms: %d\n", (int)(end - start));
-        }
-
-        TilemapResize(&map, capture.cols, capture.rows, 16);
-        TilemapClear(&map);
-
-      	// printf("%d %d\n", map.width, map.height);
-
-        {
-            clock_t start = clock();
-
-            TilemapFillEdges(&map, capture.ptr(), capture.cols, capture.rows);
-
-            for (int i = 0; i < dialate_count; ++i) {
-                TilemapDialate(&map);
-            }
+            klassList.push(state);
+            klassList.analyze();
 
             clock_t end = clock();
 
-            //printf("TilemapFill ms: %d\n", (int)(end - start));
-        }
-    
-        {
-            clock_t start = clock();
-            TilemapFloodFill(&map,&map, map.width / 2, map.height - 1, TILE_ROAD);
-            clock_t end = clock();
-
-           // printf("FloodFill ms: %d\n", (int)(end - start));
+            printf("%d\n", (int)(end - start));
+            printf("Klass blink %d\n", klassList.blink);
+            printf("Klass type %d\n", klassList.type);
+            printf("Klass pos %.2f\n", klassList.pos);
+            printf("Pos In %.2f\n", state.pos);
         }
 
-        TilemapDrawRoadCenter(&map, &map,1);
+        ImageProcRender();
 
-        RoadState state = GetRoadState(&map); // type
-        float     pos   = GetRoadPosition(&map,state); //pos
-
-		InterPos typePos;
-		typePos.type = state;
-		typePos.pos = pos;
-		
-		klassification.push(typePos);
-		klassification.analyze();
-
-		printf("klass:  Blink %d\n" ,klassification.blink);
-		printf("klass: PosAvg %.2f\n" ,klassification.pos);
-        std::cout << klassification.pos << "\n";
-        printf("klass: type %d\n", klassification.type);
-		printf("klass:  PosDifAvg %.2f\n" ,klassification.posDifAvg);
-
-
-        printf("position: %.2f\n", pos);
-        printf("position: %d\n", typePos.type);
-        
-
-        if (state & ROAD_UP)    puts("found up");
-        if (state & ROAD_LEFT)  puts("found left");
-        if (state & ROAD_RIGHT) puts("found right");
-    
-        {
-            cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
-
-            clock_t start = clock();
-
-            for (int y = 0; y < map.height; ++y) {
-                for (int x = 0; x < map.width; ++x) {
-                    int         tile    = TilemapGet(&map, x, y);
-                    cv::Vec3b&  pixel   = tilemap.at<cv::Vec3b>(y, x);
-
-                    switch (tile) {
-                        case TILE_EDGE:
-                            pixel = { 255, 0, 0 };
-                            break;
-                        case TILE_ROAD:
-                            pixel = { 0, 255, 0 };
-                            break;
-                        case TILE_CENTER:
-                            pixel = { 0, 100, 255 };
-                            break;
-                    }
-                }
-            }
-
-            clock_t end = clock();
-
-          //  printf("AsciiMap ms: %d\n", (int)(end - start));
-
-            cv::resizeWindow("tilemap", map.width * map.cell_size*0.5, map.height * map.cell_size*0.5);
-            cv::imshow("tilemap", tilemap);
-        }
-
-        cv::resizeWindow("capture", capture.cols, capture.rows);
-       // cv::imshow("capture", capture);
+        cv::imshow("frame", frame);
     }
-
-    cv::waitKey(0);
 }
-
