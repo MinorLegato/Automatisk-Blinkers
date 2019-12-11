@@ -47,8 +47,6 @@ static void ControllerUpdate(Controller *c, float t) {
 int main(void) {
     PlatformInit("CLIENT!", 800, 600, 8);
 
-    platform.mouse.mode = MOUSE_DISABLED;
-
     RenderInit();
     NetInit();
 

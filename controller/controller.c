@@ -20,7 +20,7 @@ ControllerPackageCreate(Controller controller)
 {
     ControllerPackage cp = {0};
 
-    cp.crc32        = CRC32Code(&controller, sizeof (controller));
+    cp.crc32        = CRC32Code(&controller, sizeof (Controller));
     cp.controller   = controller;
 
     return cp;
