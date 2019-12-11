@@ -39,7 +39,7 @@ static const uint32_t crc_table[] = {
 
 static uint32_t CRC32Code(const void *data, size_t size)
 {
-    const uint8_t *d  = data;
+    const uint8_t *d  = (const uint8_t *)data;
     uint32_t      crc = 0xFFFFFFFF;
 
     while (size--)
