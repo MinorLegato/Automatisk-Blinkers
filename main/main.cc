@@ -1,6 +1,7 @@
-#include "lib/common.cc"
-#include "lib/klass.cc"
-#include "lib/matToLines.cc"
+#include "../lib/common.cc"
+#include "../lib/klass.cc"
+#include "../lib/matToLines.cc"
+#include "../lib/image_proc.cc"
 #include "canlib.h"
 #include "net.h"
 
@@ -18,6 +19,9 @@ struct Controller
 	int8_t 	blink;
 };
 
+float   pos;
+int     blink;
+
 static Controller controller = {0};
 
 static void ControllerThread(void)
@@ -34,7 +38,8 @@ static void ControllerThread(void)
         //puts("net recv");
 		netServerRecv(&server, &controller, sizeof (Controller));
 
-		//printf("t %d\n", controller.thrust);
+        controller.blink = blink;
+
 		//printf("s %d\n", controller.steering);
 		//printf("b %d\n", controller.blink);
 
@@ -43,20 +48,46 @@ static void ControllerThread(void)
 	}
 }
 
-
 int main(void)
 {
     std::thread controller_thread(ControllerThread);
 
     cv::VideoCapture cap(0);
 
-    cap.set(cv::CAP_PROP_FRAME_WIDTH,  320 * 2);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240 * 2);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,  320);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 240);
 
+    //ImageProcInit();
+
+    InterPosList klass;
+
+    cv::Mat frame;
+
+    while (cv::waitKey(16) != 27) {
+        cap >> frame;
+
+        InterPos state = ImageProcUpdate(frame);
+        klass.push(state);
+
+        //blink = klass.analyze();
+        blink = klass.posAvg();
+        
+        printf("blink %d\n", klass.blink);
+        printf("pos %.2f\n", klass.pos);
+        printf("pos %d\n", klass.type);
+
+        if (state.type & ROAD_UP)    puts("found up");
+        if (state.type & ROAD_LEFT)  puts("found left");
+        if (state.type & ROAD_RIGHT) puts("found right");
+
+        ImageProcRender();
+    }
+
+#if 0
     Tilemap map;
 
-    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
-    cv::namedWindow("capture", cv::WINDOW_NORMAL);
+    cv::namedWindow("tilemap",  cv::WINDOW_NORMAL);
+    cv::namedWindow("capture",  cv::WINDOW_NORMAL);
 
     cv::Mat capture;
 
@@ -67,7 +98,7 @@ int main(void)
     while (true) {
         int key = cv::waitKey(16);
 
-        if (key == 27) break;
+        if (key == 27)  break;
         if (key == '1') dialate_count--;
         if (key == '2') dialate_count++;
 
@@ -101,7 +132,7 @@ int main(void)
         }
 
         RoadState state = GetRoadState(&map); // type
-        float     pos   = GetRoadPosition(&map,state); //pos
+        pos   = GetRoadPosition(&map,state); //pos
 
 		InterPos typePos;
 		typePos.type = state;
@@ -112,20 +143,22 @@ int main(void)
             klassification.analyze();
         }
 
-		//printf("klass:  Blink %d\n" ,klassification.blink);
-		//printf("klass: PosAvg %.2f\n" ,klassification.pos);
-        //std::cout << klassification.pos << "\n";
-        //printf("klass: type %d\n", klassification.type);
-		//printf("klass:  PosDifAvg %.2f\n" ,klassification.posDifAvg);
+        system("clear");
+
+		printf("klass:  Blink %d\n" ,klassification.blink);
+		printf("klass: PosAvg %.2f\n" ,klassification.pos);
+        std::cout << klassification.pos << "\n";
+        printf("klass: type %d\n", klassification.type);
+		printf("klass:  PosDifAvg %.2f\n" ,klassification.posDifAvg);
 
 
-        //printf("position: %.2f\n", pos);
-        //printf("position: %d\n", typePos.type);
+        printf("position: %.2f\n", pos);
+        printf("position: %d\n", typePos.type);
         
 
-        //if (state & ROAD_UP)    puts("found up");
-        //if (state & ROAD_LEFT)  puts("found left");
-        //if (state & ROAD_RIGHT) puts("found right");
+        if (state & ROAD_UP)    puts("found up");
+        if (state & ROAD_LEFT)  puts("found left");
+        if (state & ROAD_RIGHT) puts("found right");
     
         {
             cv::Mat tilemap = cv::Mat::zeros(map.height, map.width, CV_8UC3);
@@ -155,9 +188,11 @@ int main(void)
             cv::imshow("tilemap", tilemap);
         }
 
+
         cv::resizeWindow("capture", 0.5f * capture.cols, 0.5f * capture.rows);
         cv::imshow("capture", capture);
     }
+#endif
 
 	return 0;
 }
