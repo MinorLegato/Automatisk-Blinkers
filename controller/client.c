@@ -66,7 +66,10 @@ int main(void) {
             platform.close = true;
 
         ControllerUpdate(&controller, t);
-        NetClientSend(&client, &controller, sizeof controller);
+
+        ControllerPackage cp = ControllerPackageCreate(controller);
+
+        NetClientSend(&client, &cp, sizeof cp);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         RenderSetCameraOrtho(platform.width, platform.height, -1.0f, 1.0f);
