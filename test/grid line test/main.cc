@@ -1,5 +1,5 @@
-#include "../lib/common.cc"
-#include "../lib/matToLines.cc"
+#include "../../lib/common.cc"
+#include "../../lib/matToLines.cc"
 
 #include <time.h>
 
@@ -7,7 +7,7 @@
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/real3.jpg");
+    cv::Mat capture = cv::imread("../testPics/real1.jpg");
 
 #if 1
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
@@ -15,12 +15,22 @@ int main(void)
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 #endif
 
+    cv::imshow("normal", capture);
+
     Tilemap map = {0};
 
-    cv::namedWindow("capture", cv::WINDOW_NORMAL);
-    cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
+    {
+        cv::cvtColor(capture, capture, cv::COLOR_BGR2GRAY);
+        cv::imshow("gray", capture);
 
-    MatToEdge(capture);
+        cv::GaussianBlur(capture, capture, { 5, 5 }, 0);
+        cv::imshow("blur", capture);
+
+        cv::Canny(capture, capture, 50, 150);
+        cv::imshow("edge", capture);
+    }
+
+    //MatToEdge(capture, capture);
 
     TilemapResize(&map, capture.cols, capture.rows, 8);
 
@@ -62,17 +72,15 @@ int main(void)
                     case TILE_EDGE:         pixel = { 255, 0, 0 };      break;
                     case TILE_ROAD:         pixel = { 0, 255, 0 };      break;
                     case TILE_CENTER:       pixel = { 0, 100, 255 };    break;
-                    case TILE_LANE_CENTER:  pixel = { 150, 100, 50 };    break;
+                    case TILE_LANE_CENTER:  pixel = { 150, 100, 50 };   break;
                 }
             }
         }
 
+        cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
         cv::resizeWindow("tilemap", map.width * map.cell_size, map.height * map.cell_size);
         cv::imshow("tilemap", tilemap);
     }
-
-    cv::resizeWindow("capture", capture.cols, capture.rows);
-    cv::imshow("capture", capture);
 
     cv::waitKey(0);
 }
