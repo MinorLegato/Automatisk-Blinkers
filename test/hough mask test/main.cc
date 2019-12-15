@@ -7,9 +7,10 @@
 
 int main(void)
 {
-    cv::Mat frame = cv::imread("../testPics/3crossingtest2.png");
+    cv::Mat frame = cv::imread("../testPics/real1.jpg");
 
 #if 1
+    cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
     cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
     cv::pyrDown(frame, frame, { frame.cols / 2, frame.rows / 2 });
 #endif

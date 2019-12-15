@@ -7,12 +7,12 @@
 
 int main(void)
 {
-    cv::Mat capture = cv::imread("../testPics/real1.jpg");
+    cv::Mat capture = cv::imread("../testPics/3crossingtest1.png");
 
 #if 1
     cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
-    cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+    //cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
+    //cv::pyrDown(capture, capture, { capture.cols / 2, capture.rows / 2 });
 #endif
 
     cv::imshow("normal", capture);

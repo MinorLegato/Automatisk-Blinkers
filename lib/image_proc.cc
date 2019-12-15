@@ -16,10 +16,10 @@ static void ImageProcInit(void)
 {
     hough_lines.reserve(1028 * 512);
 
-    //cv::namedWindow("edge", cv::WINDOW_NORMAL);
+    cv::namedWindow("edge", cv::WINDOW_NORMAL);
     cv::namedWindow("tilemap", cv::WINDOW_NORMAL);
-    //cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
-    //cv::namedWindow("and", cv::WINDOW_NORMAL);
+    cv::namedWindow("hough_lines", cv::WINDOW_NORMAL);
+    cv::namedWindow("and", cv::WINDOW_NORMAL);
 }
 
 static InterPos ImageProcUpdate(const cv::Mat &frame)
@@ -51,7 +51,7 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
         }
 
         cv::bitwise_and(mat_edge, mat_and, mat_edge);
-        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 100);
+        cv::HoughLinesP(mat_edge, hough_lines, 2, CV_PI / 90.0f, 20, 10, 40);
     }
 
     RoadState state = TilemapGetRoadState(&map);
@@ -65,7 +65,7 @@ static InterPos ImageProcUpdate(const cv::Mat &frame)
 static void ImageProcRender(void)
 {
     // get hough_lines:
-    if (0) {
+    if (1) {
         mat_lines = cv::Mat::zeros(mat_edge.rows, mat_edge.cols, CV_8UC3);
 
         for (int i = 0; i < hough_lines.size(); ++i) {
@@ -104,7 +104,7 @@ static void ImageProcRender(void)
             }
         }
 
-#if 0
+#if 1
         for (int y = 0; y < map.height; ++y) {
             for (int x = 0; x < map.width; ++x) {
                 int        tile  = TilemapGet(&map, x, y);
@@ -122,12 +122,11 @@ static void ImageProcRender(void)
 #endif
     }
 
-
-    //cv::imshow("hough_lines", mat_lines);
-    //cv::resizeWindow("tilemap", mat_edge.cols, mat_edge.rows);
+    cv::imshow("hough_lines", mat_lines);
+    cv::resizeWindow("tilemap", mat_edge.cols, mat_edge.rows);
     cv::imshow("tilemap",  mat_tiles);
 
-    //cv::imshow("edge",  mat_edge);
-    //cv::imshow("and",  mat_and);
+    cv::imshow("edge",  mat_edge);
+    cv::imshow("and",  mat_and);
 }
 
