@@ -10,16 +10,16 @@
 
 #include "controller.c"
 
-static void ControllerUpdate(Controller *c, float t) {
-    {
-        c->thrust   = 0;
-        c->steering = 0;
-    }
+static void ControllerUpdate(Controller *c, float t)
+{
+    c->thrust   = 0;
+    c->steering = 0;
 
     {
         const Gamepad *gp = &platform.gamepad[0];
 
-        if (gp->active) {
+        if (gp->active)
+        {
             c->thrust   = INT8_MAX * gp->RT + INT8_MIN * gp->LT;
 
             if (fabsf(gp->LS.x) > 0.1f) 
@@ -44,10 +44,9 @@ static void ControllerUpdate(Controller *c, float t) {
     c->blink = CLAMP(c->blink, -1, 1);
 }
 
-int main(void) {
+int main(void)
+{
     PlatformInit("CLIENT!", 800, 600, 8);
-
-    //glfwSwapInterval(0);
 
     RenderInit();
     NetInit();
@@ -59,7 +58,8 @@ int main(void) {
     
     NetClientInit(&client, ip, 8888);
 
-    while (!platform.close) {
+    while (!platform.close)
+    {
         float t = platform.time.delta;
 
         if (platform.keyboard.pressed[KEY_ESCAPE])
