@@ -33,12 +33,10 @@ void setup()
 {
     SERIAL.begin(115200);     //make it posibol to print things
 
-
     /////////////////////////////////////////
     myservo.attach(6);  // attaches the servo on pin 9 to the servo object
     //myservo.write(90);   //sett servo to posetion 0
     ////////////////////////////////////////
-
 
     while (CAN_OK != CAN.begin(CAN_500KBPS))              // init can bus : baudrate = 500k
     {
@@ -77,13 +75,11 @@ void loop()
         
         if(temp != dir)
         {
-          myservo.write(dir); 
-		  temp = dir;
+            myservo.write(dir); 
+		    temp = dir;
 		}
-        
 
         /*
-
         if(temp != dir)                       //chek if the char array have changest, if not do nothing, else change to position
         {
 
@@ -112,12 +108,6 @@ void loop()
         }
 
         */
-
-///////////////////////////////////////////////////////////
-
-
-
-
         SERIAL.println();
     }
 }

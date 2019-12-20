@@ -19,10 +19,8 @@ const int LEDR        = 7;                                //right led
 const int LEDL        = 3;                                //left led
 const int LEDB        = 6;                                //back led
 
-
 int can;    // variable from the can-buss
 int sig;    // variable that control the servo
-
 
 boolean ledON        = 1;
 
@@ -45,6 +43,7 @@ void setup()
         SERIAL.println("Init CAN BUS Shield again");
         delay(100);
     }
+
     SERIAL.println("CAN BUS Shield init ok!");
 }
 
@@ -64,58 +63,41 @@ void loop()
         SERIAL.println("get data from ID: 0x");
         SERIAL.println(canId, HEX);
 
-
 /////////////////////////////////////////////////////////////////////////////////
         sig = buf[2];                          //gets the secund value of the can-buss, witch is the direktion
 //        sig = map(can, -1, 1, -1, 1);     // scale it to use it with the servo (value between 0 and 180)
 
         SERIAL.println();
         //SERIAL.println(sig);
-
         
         SERIAL.println(buf[0]);
         SERIAL.println(buf[1]);
         SERIAL.println(buf[2]);
 
-
-
-       if(sig == 1)           //blink right
-       {
-
-              digitalWrite(LEDR, LOW);   // turn the LEDR on 
-              delay(500);                       // wait 
-              digitalWrite(LEDR, HIGH);    // turn the LEDR off
-              delay(500);                       // wait 
-           
-       }
+        if(sig == 1) // blink right
+        {
+            digitalWrite(LEDR, LOW);   // turn the LEDR on 
+            delay(500);                       // wait 
+            digitalWrite(LEDR, HIGH);    // turn the LEDR off
+            delay(500);                       // wait 
+        }
        
-       if(sig == -1)          //blink left
-       {
-              digitalWrite(LEDL, LOW);   // turn the LEDL on 
-              delay(500);                       // wait 
-              digitalWrite(LEDL, HIGH);    // turn the LEDL off
-              delay(500);                       // wait 
-
-       }
+        if(sig == -1)          //blink left
+        {
+            digitalWrite(LEDL, LOW);   // turn the LEDL on 
+            delay(500);                       // wait 
+            digitalWrite(LEDL, HIGH);    // turn the LEDL off
+            delay(500);                       // wait 
+        }
        
-       if(sig == 0)           //all lights on 
-       {
-        digitalWrite(LEDL, HIGH);   // turn the LEDL on 
-        digitalWrite(LEDR, HIGH);   // turn the LEDR on 
-        delay(500);
-       }
-
-
-      
+        if(sig == 0)           //all lights on 
+        {
+            digitalWrite(LEDL, HIGH);   // turn the LEDL on 
+            digitalWrite(LEDR, HIGH);   // turn the LEDR on 
+            delay(500);
+        }
 
 ///////////////////////////////////////////////////
-
-
-
-
-
-
-
 //        for(int i = 0; i<len; i++)    // print the data
 //        {
 //            SERIAL.print(buf[i]);
